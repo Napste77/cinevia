@@ -1,0 +1,391 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PantallaTotal - Oppenheimer</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(15, 23, 42, 0.6);
+            backdrop-filter: blur(20px);
+            -webkit-backdrop-filter: blur(20px);
+            border: 1px solid rgba(30, 41, 59, 0.5);
+        }
+        .hero-gradient {
+            background: linear-gradient(to top, #0c1324 0%, #0c1324 15%, rgba(12, 19, 36, 0.4) 50%, transparent 100%);
+        }
+        .electric-glow {
+            box-shadow: 0 0 20px rgba(208, 188, 255, 0.3);
+        }
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        ::-webkit-scrollbar-track {
+            background: #0c1324;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2e3447;
+            border-radius: 4px;
+        }
+        ::-webkit-scrollbar-thumb:hover {
+            background: #434933;
+        }
+    </style>
+<!-- Tailwind Config Verbatim -->
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#ffffff",
+                    "error": "#ffb4ab",
+                    "on-secondary-fixed-variant": "#5516be",
+                    "on-error": "#690005",
+                    "tertiary-fixed": "#dae2fd",
+                    "on-background": "#dce1fb",
+                    "on-surface-variant": "#c2caad",
+                    "secondary-container": "#571bc1",
+                    "tertiary-fixed-dim": "#bec6e0",
+                    "on-primary": "#253600",
+                    "inverse-surface": "#dce1fb",
+                    "on-tertiary-container": "#5c647a",
+                    "surface-container-lowest": "#070d1f",
+                    "on-secondary": "#3c0091",
+                    "surface": "#0c1324",
+                    "surface-dim": "#0c1324",
+                    "surface-container-low": "#151b2d",
+                    "on-tertiary-fixed-variant": "#3f465c",
+                    "primary-fixed-dim": "#a0d800",
+                    "surface-variant": "#2e3447",
+                    "surface-container-high": "#23293c",
+                    "tertiary": "#ffffff",
+                    "background": "#0c1324",
+                    "on-error-container": "#ffdad6",
+                    "outline": "#8c9479",
+                    "on-secondary-container": "#c4abff",
+                    "secondary": "#d0bcff",
+                    "secondary-fixed": "#e9ddff",
+                    "on-primary-fixed": "#141f00",
+                    "inverse-on-surface": "#2a3043",
+                    "secondary-fixed-dim": "#d0bcff",
+                    "on-tertiary-fixed": "#131b2e",
+                    "primary-container": "#b7f700",
+                    "primary-fixed": "#b7f700",
+                    "inverse-primary": "#4b6700",
+                    "tertiary-container": "#dae2fd",
+                    "error-container": "#93000a",
+                    "on-surface": "#dce1fb",
+                    "on-primary-fixed-variant": "#374e00",
+                    "outline-variant": "#434933",
+                    "on-primary-container": "#506e00",
+                    "surface-container-highest": "#2e3447",
+                    "surface-bright": "#33394c",
+                    "on-secondary-fixed": "#23005c",
+                    "surface-container": "#191f31",
+                    "on-tertiary": "#283044",
+                    "surface-tint": "#a0d800"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "20px",
+                    "container-max": "1440px",
+                    "margin-desktop": "64px",
+                    "gutter": "24px",
+                    "unit": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Sora"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "display-xl": ["Sora"],
+                    "headline-lg": ["Sora"],
+                    "display-lg": ["Sora"],
+                    "label-md": ["Sora"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "display-xl": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+          min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="bg-background text-on-surface selection:bg-primary-container selection:text-on-primary-container overflow-x-hidden">
+<!-- TopAppBar Mapping -->
+<nav class="bg-surface/80 dark:bg-surface/80 backdrop-blur-xl border-b border-surface-variant/20 docked full-width top-0 z-50 sticky flex justify-between items-center px-margin-mobile md:px-margin-desktop h-20 w-full transition-all duration-300">
+<div class="flex items-center gap-4">
+<button class="p-2 text-primary dark:text-primary-fixed-dim hover:bg-surface-variant/30 rounded-full transition-all scale-95 active:scale-90">
+<span class="material-symbols-outlined">arrow_back</span>
+</button>
+<span class="font-display-lg text-display-lg tracking-tighter text-primary dark:text-primary-fixed-dim hidden md:block">PantallaTotal</span>
+</div>
+<div class="flex items-center gap-6">
+<span class="material-symbols-outlined text-primary cursor-pointer hover:opacity-70 transition-opacity">search</span>
+<div class="w-10 h-10 rounded-full bg-surface-variant border border-outline-variant overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A close-up high-resolution profile portrait of a sophisticated person with short hair, shot in low-key cinematic lighting against a dark navy background. The image has a professional film grain texture and dramatic shadows, aligning with a high-end luxury streaming service aesthetic. The skin tones are natural and the lighting is soft yet focused." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDc29Jlnyyy-M0ffgNXhOyWhSuVJyOP-zG3jrGwUV2Z9mhW5wC79AwX0qXjntSYN7G_YWaXkoo6rJVCuAagQmzJo8ZyOyNefmxbHkmfEzGcn6frElOMOLpzcvdyWRYhQh3vS-mn1tzlUoP0Pt3Rj6g-wfRilO2OqVpEBgLG0FB81-VFyvTeSz3w8CVt6zH3-pi2sCe2y-fszILZDZcnu_P_KJrrGp7Mkk3_lTF8RdMhTKH9kUfjVYJx"/>
+</div>
+</div>
+</nav>
+<main class="relative">
+<!-- Hero Section -->
+<section class="relative w-full h-[751px] md:h-screen overflow-hidden">
+<div class="absolute inset-0 z-0">
+<img class="w-full h-full object-cover" data-alt="A wide cinematic landscape still from a period film depicting a dramatic desert horizon at dawn, with high-contrast orange and deep blue hues. The lighting is harsh and theatrical, reminiscent of a Christopher Nolan film set. In the distance, a silhouetted figure stands near a solitary structure. The mood is tense, atmospheric, and highly detailed with cinematic depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNmkIdeR4xliNm1sMh5NibU_wCIsxjwL6HFB_zj3pPZ11lz58S08Zor6GwQcnXuj7_iRtTn-vScfqQ9bVKAZh3zj1Q8IUpMGeURheWyYXeTddcVY2AumVFk2d6on9cn-o7KnRtews2YNpDIixLk03spnWzdCXE1Fm2dRGR1lGGMAEgWXGZDatBK1dafiCYriq4h9W42i5ltLpbbLj-C_W-fFe0NgBxnysM35pjGxx8tEvtr5588pYo"/>
+<div class="absolute inset-0 hero-gradient"></div>
+</div>
+<!-- Hero Content Overlay -->
+<div class="absolute bottom-0 left-0 w-full px-margin-mobile md:px-margin-desktop pb-12 z-10">
+<div class="max-w-4xl space-y-6">
+<div class="flex items-center gap-2 mb-4 md:hidden">
+<span class="font-display-lg text-headline-lg text-primary tracking-tighter">PantallaTotal</span>
+</div>
+<div class="flex flex-wrap items-center gap-3">
+<span class="bg-primary-container/20 text-primary-fixed-dim px-3 py-1 rounded-full font-label-md text-label-md border border-primary-container/30 backdrop-blur-md">4K ULTRA HD</span>
+<span class="text-on-surface-variant font-label-md text-label-md">2023</span>
+<span class="w-1 h-1 rounded-full bg-on-surface-variant"></span>
+<span class="text-on-surface-variant font-label-md text-label-md">3h 0m</span>
+<span class="w-1 h-1 rounded-full bg-on-surface-variant"></span>
+<div class="flex items-center gap-1 text-primary-fixed-dim">
+<span class="material-symbols-outlined text-[18px]" style="font-variation-settings: 'FILL' 1;">star</span>
+<span class="font-label-md text-label-md">8.4</span>
+</div>
+</div>
+<h1 class="font-display-xl text-[48px] md:text-display-xl leading-none uppercase tracking-tight">Oppenheimer</h1>
+<p class="font-body-lg text-body-lg text-on-surface-variant max-w-2xl leading-relaxed">
+                        The story of American scientist, J. Robert Oppenheimer, and his role in the development of the atomic bomb.
+                    </p>
+<div class="flex flex-col sm:flex-row gap-4 pt-4">
+<button class="bg-primary-fixed text-on-primary-fixed px-8 py-4 rounded-xl font-label-md text-label-md flex items-center justify-center gap-2 hover:scale-105 active:scale-95 transition-all electric-glow">
+<span class="material-symbols-outlined">play_arrow</span>
+                            WATCH NOW
+                        </button>
+<button class="bg-secondary-container/40 text-on-secondary-container px-8 py-4 rounded-xl font-label-md text-label-md flex items-center justify-center gap-2 border border-secondary-container/50 backdrop-blur-xl hover:bg-secondary-container/60 transition-all">
+<span class="material-symbols-outlined">bookmark_add</span>
+                            ADD TO MY LIST
+                        </button>
+</div>
+</div>
+</div>
+</section>
+<!-- Movie Details Body -->
+<section class="px-margin-mobile md:px-margin-desktop py-12 space-y-24 bg-background">
+<!-- Synopsis & Info Bento Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-gutter">
+<div class="lg:col-span-8 space-y-6">
+<h2 class="font-headline-lg text-headline-lg text-primary">Synopsis</h2>
+<p class="font-body-lg text-body-lg text-on-surface-variant leading-loose">
+                        During World War II, Lt. Gen. Leslie Groves Jr. appoints physicist J. Robert Oppenheimer to work on the top-secret Manhattan Project. Oppenheimer and a team of scientists spend years developing and designing the atomic bomb. Their work comes to fruition on July 16, 1945, as they witness the world's first nuclear explosion, forever changing the course of history. A cinematic masterpiece that delves into the brilliance, hubris, and relentless drive of the man who changed the world.
+                    </p>
+</div>
+<div class="lg:col-span-4 glass-panel p-8 rounded-2xl space-y-6 h-fit self-start">
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant block mb-2">GENRE</span>
+<div class="flex flex-wrap gap-2">
+<span class="bg-surface-variant text-primary px-3 py-1 rounded-lg text-sm">Biography</span>
+<span class="bg-surface-variant text-primary px-3 py-1 rounded-lg text-sm">Drama</span>
+<span class="bg-surface-variant text-primary px-3 py-1 rounded-lg text-sm">History</span>
+</div>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant block mb-2">DIRECTOR</span>
+<span class="font-body-md text-body-md text-primary">Christopher Nolan</span>
+</div>
+<div>
+<span class="font-label-md text-label-md text-on-surface-variant block mb-2">LANGUAGE</span>
+<span class="font-body-md text-body-md text-primary">English (Dolby Atmos)</span>
+</div>
+</div>
+</div>
+<!-- Cast & Crew -->
+<div class="space-y-8">
+<div class="flex justify-between items-end">
+<h2 class="font-headline-lg text-headline-lg text-primary">Cast &amp; Crew</h2>
+<a class="font-label-md text-label-md text-primary-fixed-dim hover:underline transition-all" href="#">View All Members</a>
+</div>
+<div class="flex overflow-x-auto gap-12 pb-4 no-scrollbar">
+<div class="flex-shrink-0 flex flex-col items-center gap-4 group">
+<div class="w-32 h-32 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary-fixed transition-all duration-300">
+<img class="w-full h-full object-cover" data-alt="A sharp, professional headshot of Cillian Murphy with intense, focused eyes, lighting is high-contrast black and white to emphasize features. High-end editorial photography style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBVLwM9__g3NtdK8v0V_g2UL_HrSURe9g5uteSILGItrndDIedS9X-8N7zzGqB6tq3f3msSPSWFmtM_b5qwDHoqByCgzedQo05Alk0EhQ9WyaixVnhTSaH7ko3T3y0bD4hRLe5d7rEOQuLZz9rtiJxZUZzDKkbzhz0cmyLlPlY-QWnrVwUhv_WBm6VdZn--mBJklm2_qKKIFim94xxCrr10IJAtulZNTqP-WK6hvORcnNiw6ZExsunR"/>
+</div>
+<div class="text-center">
+<p class="font-body-md text-body-md text-primary font-bold">Cillian Murphy</p>
+<p class="font-label-md text-label-md text-on-surface-variant">J. Robert Oppenheimer</p>
+</div>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-4 group">
+<div class="w-32 h-32 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary-fixed transition-all duration-300">
+<img class="w-full h-full object-cover" data-alt="A professional headshot of Emily Blunt in a dark, atmospheric studio setting. Soft, cinematic rim lighting highlighting her profile. Editorial style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBy1wbROE95J8rYR3DresCD3iHKZcRHr-0C-5zSq5ufqFSac7PfqGqGVYLn_4DGcpyBajfBKr7NpMW-23ZpZ70A-5ZiO0yDX6_MJiFxIhC_yf_RU06mD7C56gJgbyl9VO2EHuXlAoUNEuyvWrY3--ZeqJ75km028hQAYCEbmIyQbEPjyHOV_BUD6wlvsLxb7gH4O_v6MbeUn6y1dXfGgazqM8wNdSoYpRgsOGZKP5RU3FoQ-Qbfbc3D"/>
+</div>
+<div class="text-center">
+<p class="font-body-md text-body-md text-primary font-bold">Emily Blunt</p>
+<p class="font-label-md text-label-md text-on-surface-variant">Kitty Oppenheimer</p>
+</div>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-4 group">
+<div class="w-32 h-32 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary-fixed transition-all duration-300">
+<img class="w-full h-full object-cover" data-alt="A high-end cinematic portrait of Robert Downey Jr. in a sophisticated pose, wearing a dark suit. Dramatic side lighting, shallow depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuACgubWnFwWvEqVY6z7sI8gZydJaS70LFxP4JHVjdTJYf4ywwKc-cf2NSgOu0Q42j2Y1F4AsTiZ87zKLR6E6HxIEl4cHxbwVgyPvbBXtO1RkoVMUCjGg47wxCn39sj4w7znquhJ85ZLoVZdE2git4kU4HO8VE7WOlZ5oM4FuHPrJOZWtM9AF0fsrhQUyRbvxzGMi2CA73D2G1qkCa7-DWjr_L50GihR6E_lFiMaesGypCUFjUe5pj09"/>
+</div>
+<div class="text-center">
+<p class="font-body-md text-body-md text-primary font-bold">Robert Downey Jr.</p>
+<p class="font-label-md text-label-md text-on-surface-variant">Lewis Strauss</p>
+</div>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-4 group">
+<div class="w-32 h-32 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary-fixed transition-all duration-300">
+<img class="w-full h-full object-cover" data-alt="A crisp, editorial studio portrait of Matt Damon. Lighting is bright but cinematic with deep shadows in the background. High texture detail." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAyJG_RvAmETLAoS0UI4UrBKVffV_ezoAMo9RJ4PWw0K5rJY2V8xLe432x7VvuE5HP4cdqJ5c1Kkfn6opWXS8UM-5bK6OvEIT6l_8qRjYcqJXCB5OQIrPGIKKPyjfH2xBC79L7n7Xv820EIsSkYjpQRYbkxr6mlFn5qu2EJir0I-_yKHXKvtnQUMiCQpyE1Z0KDsu-xkpqhUmewoTNMoFRQn6IwAirKYY8xD_KrBlK5SI3WSaxwSnP_"/>
+</div>
+<div class="text-center">
+<p class="font-body-md text-body-md text-primary font-bold">Matt Damon</p>
+<p class="font-label-md text-label-md text-on-surface-variant">Leslie Groves</p>
+</div>
+</div>
+<div class="flex-shrink-0 flex flex-col items-center gap-4 group">
+<div class="w-32 h-32 rounded-full overflow-hidden border-2 border-transparent group-hover:border-primary-fixed transition-all duration-300">
+<img class="w-full h-full object-cover" data-alt="A dramatic close-up headshot of Florence Pugh, atmospheric lighting with subtle warm tones. Modern film aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfAPu4xSQ-paB6cdMLLvRwKkn17akbw9bcKwIhfN5DY24Zkk-7P23anIsd5YWMey1VHP8vkWaicSuHHcOBJc5w9Y16F1BXL5ReHwjB2GbKBSVkkUrYsMsE11-fOXbgVw_rt4g50S8F3u-_Iq_C7w4_16PPpkuP11ah6Ixt5PgOYFJU4kREYs_t_sf8a-_dg6OhDDe0tIfTQ3jAoeYD0g_o45CLM6i2sG3SKQtHjwvGGhsIazo3Y-mR"/>
+</div>
+<div class="text-center">
+<p class="font-body-md text-body-md text-primary font-bold">Florence Pugh</p>
+<p class="font-label-md text-label-md text-on-surface-variant">Jean Tatlock</p>
+</div>
+</div>
+</div>
+</div>
+<!-- More Like This -->
+<div class="space-y-8 pb-24">
+<h2 class="font-headline-lg text-headline-lg text-primary">More Like This</h2>
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-5 gap-6">
+<!-- Movie Card -->
+<div class="group relative aspect-[2/3] rounded-xl overflow-hidden cursor-pointer">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="A movie poster for a dramatic space exploration film featuring an astronaut silhouetted against a massive golden planet. Minimalist and epic. Dark navy and gold color palette." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxiBa-p2TNvn6iC6P9az7vKB-S2UYwJlCE_-nHzWBS7wXxTYOXl_e9M6eCt9FSDKoRdcbfMaYTYbcfWSa2k3tfQ01J5jT0_SDDfO-v2r_WF4MqDRsHEr_1yT_nsw5uh7hcR9mb71iHAC80oiyoL9ob4b9-Xm30Ziccj03lZ7EC_kMh4NGuT90-869Z4Qjak0qbTkhDYtjfN6YYMeZDN27ppbcMAHaPeK0SyTBa8rTKcui9kyMYcBV1"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="space-y-1">
+<p class="font-label-md text-label-md text-primary">Interstellar</p>
+<p class="text-[12px] text-on-surface-variant">Drama • Sci-Fi</p>
+</div>
+</div>
+<div class="absolute top-2 right-2 bg-surface/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-primary-fixed-dim">8.7</div>
+</div>
+<!-- Movie Card -->
+<div class="group relative aspect-[2/3] rounded-xl overflow-hidden cursor-pointer">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="A cinematic movie poster for a gritty war film showing a shoreline with soldiers and heavy atmospheric mist. Muted grey and teal tones. Highly detailed textures." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCNO7hX13GPWRYUgE106pNmeeVciTbijmtAbeBexutGGGyGTHY9Jt5_3bHL6TdbXCeaiuEkd-qLdpVNwYdPksj2X8r3PrOfkWPIKAMraJleb6xSRqR9K0WWiHI924_STB0twFC688EWO5iqLRGWiqxg5yfDf6UBo0sMw4-_qdj1s0AI_THHsfcURsq6QCK5EdBWGHN0jxIIZqF4bct598DJnhZQhMg9uDLtBYr9Qr_WibL_5neOEZ8s"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="space-y-1">
+<p class="font-label-md text-label-md text-primary">Dunkirk</p>
+<p class="text-[12px] text-on-surface-variant">Action • War</p>
+</div>
+</div>
+<div class="absolute top-2 right-2 bg-surface/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-primary-fixed-dim">7.8</div>
+</div>
+<!-- Movie Card -->
+<div class="group relative aspect-[2/3] rounded-xl overflow-hidden cursor-pointer">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="A conceptual movie poster with a spinning top on a polished dark surface. The lighting is cold and clinical with blue and silver highlights. Cinematic and mysterious." src="https://lh3.googleusercontent.com/aida-public/AB6AXuC-L48soJ2ksf7SGLoTgSpRNB9hu3Hhedznhtv28FKcPYcYO84ABWwyKhjZCrbfk8kJTOHIhha9W2P-cm2dVM4bI-QRzZW7FHbDS0RlajdvepldnIHw6l9Efkdbfi-uEGkxL_riKXULSxP5dGLzyQs8J4HzvPQ7WVwga_owyOdb-uI1QrkZuBZESKvj5Yx4_yk7P5nwK0SJA_tnaIbD8T33lel3SXQxrjq-oIjsw0H1e6aSlxksRF0o"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="space-y-1">
+<p class="font-label-md text-label-md text-primary">Inception</p>
+<p class="text-[12px] text-on-surface-variant">Action • Sci-Fi</p>
+</div>
+</div>
+<div class="absolute top-2 right-2 bg-surface/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-primary-fixed-dim">8.8</div>
+</div>
+<!-- Movie Card -->
+<div class="group relative aspect-[2/3] rounded-xl overflow-hidden cursor-pointer">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="A dark and moody poster for a historical drama featuring a classic study room filled with books and low warm lamplight. Rich mahogany and deep amber tones." src="https://lh3.googleusercontent.com/aida-public/AB6AXuA7WKR75sNfafmzO8C5qPW3wtS0QmsyntuprDGYidszb0GipKxsZWH2cHdQWMQDY3b1JpUVNYTZ_lGtm9X1dnL7EI0g2JI9NLTEUvPxqKeCnMHxBRTRbuVY5IWLWr4ytnatD6nX6h6SGVY6rB1ukBVzBS24Wr9Ehcc2VN_O6zr28PuaRk4t3Xx-Lb-TlMqf06E5wEjt8txgwWsbMtUOBoTy6ulPrxKOLVGZYFzQVnQ5w2jCTftqy8qN"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="space-y-1">
+<p class="font-label-md text-label-md text-primary">The Imitation Game</p>
+<p class="text-[12px] text-on-surface-variant">Biography • Drama</p>
+</div>
+</div>
+<div class="absolute top-2 right-2 bg-surface/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-primary-fixed-dim">8.0</div>
+</div>
+<!-- Movie Card -->
+<div class="group relative aspect-[2/3] rounded-xl overflow-hidden cursor-pointer hidden lg:block">
+<img class="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110" data-alt="A cinematic film still of a massive desert landscape with towering dunes under a pale sky. The color palette is washed out and monochromatic. High-end art film style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBuE4T2aOGypBTlNmqhWVrvJmjJFBpy9MKKWlJ74DcFJZNsIEv4RXI76ZaPO2JwhHau_PiwGT-MQjxs889T83xXvQXq6ds1zvEY5FBllZVRFy1SGEmFfgrJLf0hVYUpNc-ypEwuQYEtQUpplazCZAKtDbbDak7Z1bXI1h5IjKiqJJY_1QpMABVoa6GgvNCDEv2LguUGTS_-SUopc4upDDMXQnjMvwkO-HJ04f6InEiswr51sWJJHLtn"/>
+<div class="absolute inset-0 bg-gradient-to-t from-background via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+<div class="space-y-1">
+<p class="font-label-md text-label-md text-primary">Dune</p>
+<p class="text-[12px] text-on-surface-variant">Action • Adventure</p>
+</div>
+</div>
+<div class="absolute top-2 right-2 bg-surface/80 backdrop-blur-md px-2 py-1 rounded-md text-[10px] font-bold text-primary-fixed-dim">8.0</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar (Hidden/Transparent Mapping) -->
+<nav class="bg-surface/10 dark:bg-surface/10 backdrop-blur-lg border-t border-surface-variant/10 docked full-width bottom-0 rounded-t-xl fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 pb-safe px-4 lg:hidden">
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-all p-2">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">Explore</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-all p-2">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-md text-label-md">Search</span>
+</div>
+<div class="flex flex-col items-center justify-center text-primary-fixed-dim font-bold drop-shadow-[0_0_8px_rgba(160,216,0,0.4)] transition-transform duration-200 scale-110">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">bookmarks</span>
+<span class="font-label-md text-label-md">My List</span>
+</div>
+<div class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-all p-2">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</div>
+</nav>
+<script>
+        // Micro-interaction: Change header opacity on scroll
+        window.addEventListener('scroll', () => {
+            const nav = document.querySelector('nav');
+            if (window.scrollY > 100) {
+                nav.classList.remove('bg-surface/80');
+                nav.classList.add('bg-surface/95', 'shadow-2xl');
+            } else {
+                nav.classList.add('bg-surface/80');
+                nav.classList.remove('bg-surface/95', 'shadow-2xl');
+            }
+        });
+
+        // CTA Click interaction
+        const addToListBtn = document.querySelector('button:has(.material-symbols-outlined:contains("bookmark_add"))');
+        if(addToListBtn) {
+            addToListBtn.addEventListener('click', function() {
+                const icon = this.querySelector('.material-symbols-outlined');
+                const text = this.childNodes[2];
+                if(icon.textContent === 'bookmark_add') {
+                    icon.textContent = 'bookmark_added';
+                    icon.style.fontVariationSettings = "'FILL' 1";
+                    text.textContent = 'ADDED TO LIST';
+                    this.classList.replace('text-on-secondary-container', 'text-primary-fixed-dim');
+                } else {
+                    icon.textContent = 'bookmark_add';
+                    icon.style.fontVariationSettings = "'FILL' 0";
+                    text.textContent = 'ADD TO MY LIST';
+                    this.classList.replace('text-primary-fixed-dim', 'text-on-secondary-container');
+                }
+            });
+        }
+    </script>
+</body></html>

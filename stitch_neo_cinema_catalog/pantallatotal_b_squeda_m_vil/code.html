@@ -1,0 +1,323 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PantallaTotal | Advanced Search</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#ffffff",
+                    "error": "#ffb4ab",
+                    "on-secondary-fixed-variant": "#5516be",
+                    "on-error": "#690005",
+                    "tertiary-fixed": "#dae2fd",
+                    "on-background": "#dce1fb",
+                    "on-surface-variant": "#c2caad",
+                    "secondary-container": "#571bc1",
+                    "tertiary-fixed-dim": "#bec6e0",
+                    "on-primary": "#253600",
+                    "inverse-surface": "#dce1fb",
+                    "on-tertiary-container": "#5c647a",
+                    "surface-container-lowest": "#070d1f",
+                    "on-secondary": "#3c0091",
+                    "surface": "#0c1324",
+                    "surface-dim": "#0c1324",
+                    "surface-container-low": "#151b2d",
+                    "on-tertiary-fixed-variant": "#3f465c",
+                    "primary-fixed-dim": "#a0d800",
+                    "surface-variant": "#2e3447",
+                    "surface-container-high": "#23293c",
+                    "tertiary": "#ffffff",
+                    "background": "#0c1324",
+                    "on-error-container": "#ffdad6",
+                    "outline": "#8c9479",
+                    "on-secondary-container": "#c4abff",
+                    "secondary": "#d0bcff",
+                    "secondary-fixed": "#e9ddff",
+                    "on-primary-fixed": "#141f00",
+                    "inverse-on-surface": "#2a3043",
+                    "secondary-fixed-dim": "#d0bcff",
+                    "on-tertiary-fixed": "#131b2e",
+                    "primary-container": "#b7f700",
+                    "primary-fixed": "#b7f700",
+                    "inverse-primary": "#4b6700",
+                    "tertiary-container": "#dae2fd",
+                    "error-container": "#93000a",
+                    "on-surface": "#dce1fb",
+                    "on-primary-fixed-variant": "#374e00",
+                    "outline-variant": "#434933",
+                    "on-primary-container": "#506e00",
+                    "surface-container-highest": "#2e3447",
+                    "surface-bright": "#33394c",
+                    "on-secondary-fixed": "#23005c",
+                    "surface-container": "#191f31",
+                    "on-tertiary": "#283044",
+                    "surface-tint": "#a0d800"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "20px",
+                    "container-max": "1440px",
+                    "margin-desktop": "64px",
+                    "gutter": "24px",
+                    "unit": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Sora"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "display-xl": ["Sora"],
+                    "headline-lg": ["Sora"],
+                    "display-lg": ["Sora"],
+                    "label-md": ["Sora"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "display-xl": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #020617;
+            color: #dce1fb;
+            font-family: 'Inter', sans-serif;
+        }
+        .glass {
+            background: rgba(255, 255, 255, 0.05);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .active-nav-glow {
+            filter: drop-shadow(0 0 8px rgba(160, 216, 0, 0.4));
+        }
+        body {
+            min-height: max(884px, 100dvh);
+        }
+    </style>
+</head>
+<body class="min-h-screen pb-24">
+<!-- Top Navigation Rail (Desktop) -->
+<aside class="hidden lg:flex flex-col h-screen sticky top-0 py-8 bg-surface border-r border-surface-variant/20 w-64 z-50">
+<div class="font-display-lg text-[32px] font-bold tracking-tight text-primary px-8 mb-12">PantallaTotal</div>
+<nav class="flex flex-col space-y-2">
+<a class="text-on-surface-variant px-6 py-3 hover:bg-surface-variant/50 transition-all duration-200 flex items-center gap-4" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">Explore</span>
+</a>
+<a class="bg-primary-container text-on-primary-container rounded-r-full font-bold ml-0 pr-6 py-3 flex items-center gap-4" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-md text-label-md">Search</span>
+</a>
+<a class="text-on-surface-variant px-6 py-3 hover:bg-surface-variant/50 transition-all duration-200 flex items-center gap-4" href="#">
+<span class="material-symbols-outlined">bookmarks</span>
+<span class="font-label-md text-label-md">My List</span>
+</a>
+<a class="text-on-surface-variant px-6 py-3 hover:bg-surface-variant/50 transition-all duration-200 flex items-center gap-4" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+</aside>
+<!-- Main Content Area -->
+<main class="flex-1 px-margin-mobile md:px-margin-desktop py-8 max-w-container-max mx-auto lg:ml-64">
+<!-- Search Header -->
+<header class="flex justify-between items-center mb-10 md:hidden">
+<h1 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">PantallaTotal</h1>
+<div class="w-10 h-10 rounded-full bg-surface-variant flex items-center justify-center overflow-hidden border border-outline/20">
+<img class="w-full h-full object-cover" data-alt="A sophisticated close-up portrait of a user with sharp lighting, reflecting a cinematic, high-fashion aesthetic in a dark studio setting. The color palette is composed of deep blues and vibrant electric lime highlights." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBux7PHuOFKQZY-KpZfTrQC9g5-cJFTOe3EZEbEMC9q6RXIucRmgSL-HqbcOj-onQn-EswCri_EzLlzxrZvEQWCCHi4kJsv9c5JqFHB1EITJa3e5ARy08KZQo16YkZVbxc36EXYP22MHXg0IzXJQmYn40eqA72v8mjARmSJu1V_VDBKIHQlVnPitZmlOTEZQGTeebrNiiexWAeUaDtqLb4MDoMVIU7Fr9azsUDkgBv-Fdk46xFAuKLT"/>
+</div>
+</header>
+<!-- Advanced Search Input -->
+<section class="mb-12">
+<div class="glass p-1 rounded-full flex items-center px-6 group transition-all duration-300 focus-within:ring-2 focus-within:ring-primary-fixed-dim/50 max-w-3xl">
+<span class="material-symbols-outlined text-on-surface-variant mr-4">search</span>
+<input class="bg-transparent border-none focus:ring-0 w-full py-4 font-headline-lg-mobile text-primary placeholder:text-on-surface-variant/50" placeholder="Search movies, directors, or cast..." type="text"/>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">mic</button>
+</div>
+</section>
+<div class="grid grid-cols-1 lg:grid-cols-12 gap-12">
+<!-- Left Column: Results / Suggestions -->
+<div class="lg:col-span-8 space-y-12">
+<!-- Popular Genres Bento Grid -->
+<div>
+<h2 class="font-headline-lg text-headline-lg mb-6 text-primary flex items-center gap-3">
+                        Popular Genres
+                    </h2>
+<div class="grid grid-cols-2 md:grid-cols-4 gap-4">
+<div class="group relative h-40 rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="A cinematic wide-angle shot of a futuristic neon-drenched city at night with flying vehicles and glowing holographic advertisements. The aesthetic is deep cyberpunk with rich purples, electric blues, and vibrant lime green accents." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAMixn68LrMHjR2SiOorQ35V7LygWxpc2LpUDgfmm-H3JItjGDNXoDW1HR4qUSxnPM0ZQG6orqdm0Z9o3mxg6YX8I_Nbw2CIXJVdbhUyr2Afnthl5dEqjxneR7yUCLBrjAHaeDq0wXA1lOuwbf5Gs7jnMtn6ISKGYy9z43vupu-0w3BK6_TErvYvryeOqloxfgy5mnhKwhjlKyVHLIBZ-pNRRoEnZhK-3iXjRy43ked41wQP0wIcKHF')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest to-transparent opacity-80"></div>
+<div class="absolute bottom-4 left-4 font-headline-lg-mobile text-white">Sci-Fi</div>
+</div>
+<div class="group relative h-40 rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="A moody, high-contrast black and white scene of a rainy city street at night. A lone figure in a trench coat stands under a flickering street lamp, creating long dramatic shadows in a classic Noir cinematic style." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuCz9ga0K73Ice_L9w-ZAX55j4kzlAmSTV8BvnuNq3hn7ZqgSEyiXEVHeq7KzE7jRzjXdFQJArZb0BZmg0pWplye0qRu1FOH2s_GC3-xa727XH5MEr0RmmGLiKwzLxiVpXLvpH7D9ig4QtmIUTTP030PfMQflx1I0bB0GBahSgPFuKJcE8iHUOPUxtslRlnVhqOWYYdUG6DfD_2gkWPFfb1QhmwTMr3rroLRXR6n3b_a-LiqC2MCWJ59')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest to-transparent opacity-80"></div>
+<div class="absolute bottom-4 left-4 font-headline-lg-mobile text-white">Noir</div>
+</div>
+<div class="group relative h-40 rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="An artistic, grain-textured shot of two people talking on a sun-drenched European balcony. The lighting is soft and golden, evocative of a modern independent film with a nostalgic, warm color palette." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuAtYfuCkrJUooj2cPv7URXybZcaY0HY3e0D2uP3cHTHgxe8t_dNfP0X_plyUzGkwpGMCvOeptEMeANpLUyT1s-ONhtUbMUEzgWcl3b3Se6ve-VtCWRykWNP9E48rd0AW4Ru9E_66Hzhw8YJzfPzz1Iz8PSgwqOGCb4XAoqj6quQGuY9RkppRCLtIfFDi5fP76l-L_K17b8nBKW0BaBEKLEoJI3e4TgdZZXqBphf8W4Ni0XfOjIumxRN')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest to-transparent opacity-80"></div>
+<div class="absolute bottom-4 left-4 font-headline-lg-mobile text-white">Indie</div>
+</div>
+<div class="group relative h-40 rounded-xl overflow-hidden cursor-pointer">
+<div class="absolute inset-0 bg-cover bg-center transition-transform duration-500 group-hover:scale-110" data-alt="A breathtaking aerial view of a vast, untouched snowy mountain range under a clear blue sky. The visual style is crisp and hyper-realistic, conveying the majestic atmosphere of a high-end nature documentary." style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuBPkBsDLvzvsUIuBRgjQrtjaDIem3AN_BUhYt0rBJgNFUfdN_iPyaIHIQmcW6U_BM1KCSdRzBIc074OwM7LsD0ZO-s1hAtaPSIFNtkvEdx6rdxxV0OwlMHjz7f2QbcCoT8wGw5rqzI1amRA13HW23jdfQbYxlV25G1rEum7YEs2cvMYTct7NGGjauOsOhN5Ff9bl7VAnB7QliGzyHLblcLkFz7xm1a8RIpMV97peqA5tWDvScNpw60w')"></div>
+<div class="absolute inset-0 bg-gradient-to-t from-surface-container-lowest to-transparent opacity-80"></div>
+<div class="absolute bottom-4 left-4 font-headline-lg-mobile text-white">Doc</div>
+</div>
+</div>
+</div>
+<!-- Real-time Search Results Mockup -->
+<div>
+<h2 class="font-headline-lg text-headline-lg mb-6 text-primary">Trending Now</h2>
+<div class="grid grid-cols-1 sm:grid-cols-2 gap-6">
+<!-- Result Item -->
+<div class="glass p-4 rounded-xl flex gap-4 group cursor-pointer hover:bg-white/10 transition-all">
+<div class="w-24 h-32 rounded-lg bg-surface-variant shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A stunning movie poster for a cosmic odyssey film, featuring a vibrant nebula with electric violet and deep space blues. Minimalist white typography at the center creates a clean, premium look." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCsqDL_ljpFxh9PWt3vx6jgiSLA9DMQXEZ6y1L0cqnbou3hvMam9oSGJWRrhO4Y-NNmSvpSyW4L0ocY9msRSyzoAiFQOo7P810y6phI7fzOTALqZME-tMh1KGUkjTdnFJS2G3QMPpzR1-o-ubCyQIFfrk8hQO0JHb19AkOX5sBsD4CEh-nWGKh0aVNiU63LvfH0njUr-4BcPu6Yxk9Mb7GnLVQU0kEwW2FeVXUcp001OHCo3qiIX6UZ"/>
+</div>
+<div class="flex flex-col justify-between py-1">
+<div>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary group-hover:text-primary-fixed-dim transition-colors">Interstellar Drift</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">2024 • Sci-Fi • 2h 15m</p>
+</div>
+<div class="flex gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-secondary text-xs font-bold uppercase tracking-widest">4K</span>
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-secondary text-xs font-bold uppercase tracking-widest">HDR</span>
+</div>
+</div>
+</div>
+<!-- Result Item 2 -->
+<div class="glass p-4 rounded-xl flex gap-4 group cursor-pointer hover:bg-white/10 transition-all">
+<div class="w-24 h-32 rounded-lg bg-surface-variant shrink-0 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A dramatic cinematic wide-shot of a lone neon sign flicking in a dark alleyway. High contrast lighting with vibrant green and purple glows cutting through the darkness, cinematic noir aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBPTMUct-Bq6yRCQMOdDzV9QuQDYSLM87_T-tOY14bhsdxDVbTJnpfo2R-cv01PlImtCwnHedmdZB-z603yZbahH65WbcMSbVKlQD4xeSXfdc5-wu6Tz0wbpncVQ5qt9pTXTLMYOcWLer38HzJrkiHeuMuTHUuGqqUZijFNEZBzLxhMD33aMz4A6SuSE2F7CvqTYU9VtC36w6eI71afk7L-XUln9kpYtZBMZzPjawYQs8hrhJB_h1Qz"/>
+</div>
+<div class="flex flex-col justify-between py-1">
+<div>
+<h3 class="font-headline-lg-mobile text-headline-lg-mobile text-primary group-hover:text-primary-fixed-dim transition-colors">Neon Shadow</h3>
+<p class="font-body-md text-body-md text-on-surface-variant">2023 • Noir • 1h 48m</p>
+</div>
+<div class="flex gap-2">
+<span class="px-2 py-0.5 rounded bg-surface-container-highest text-secondary text-xs font-bold uppercase tracking-widest">HD</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Right Column: Recent Searches -->
+<div class="lg:col-span-4">
+<div class="glass p-8 rounded-2xl sticky top-24">
+<div class="flex justify-between items-center mb-6">
+<h2 class="font-headline-lg-mobile text-headline-lg-mobile text-primary">Recent Searches</h2>
+<button class="text-on-surface-variant text-sm hover:text-error transition-colors">Clear all</button>
+</div>
+<ul class="space-y-4">
+<li class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">history</span>
+<span class="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Denis Villeneuve</span>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 hover:text-error transition-all">close</button>
+</li>
+<li class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">history</span>
+<span class="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Cyberpunk 2077</span>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 hover:text-error transition-all">close</button>
+</li>
+<li class="flex items-center justify-between group cursor-pointer">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-on-surface-variant group-hover:text-primary transition-colors">history</span>
+<span class="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Modern Classic Thrillers</span>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant opacity-0 group-hover:opacity-100 hover:text-error transition-all">close</button>
+</li>
+</ul>
+<div class="mt-12">
+<h3 class="font-label-md text-label-md text-primary-fixed-dim mb-4 tracking-tighter uppercase">Recommended Collections</h3>
+<div class="space-y-4">
+<div class="flex items-center gap-4 group cursor-pointer">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary">movie_filter</span>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">A24 Essential Collection</div>
+</div>
+<div class="flex items-center gap-4 group cursor-pointer">
+<div class="w-12 h-12 rounded-lg bg-surface-container-highest flex items-center justify-center">
+<span class="material-symbols-outlined text-secondary">hdr_strong</span>
+</div>
+<div class="font-body-md text-body-md text-on-surface-variant group-hover:text-primary transition-colors">Award Winning Docos</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+<!-- BottomNavBar (Mobile) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 pb-safe px-4 bg-surface/80 backdrop-blur-xl border-t border-surface-variant/10 md:hidden">
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-label-md">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-primary-fixed-dim font-bold drop-shadow-[0_0_8px_rgba(160,216,0,0.4)] scale-110" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-md text-label-md">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">bookmarks</span>
+<span class="font-label-md text-label-md">My List</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a>
+</nav>
+<script>
+        // Micro-interaction for search input
+        const searchInput = document.querySelector('input');
+        const searchContainer = searchInput.parentElement;
+
+        searchInput.addEventListener('focus', () => {
+            searchContainer.classList.add('scale-[1.02]');
+        });
+
+        searchInput.addEventListener('blur', () => {
+            searchContainer.classList.remove('scale-[1.02]');
+        });
+
+        // Simple delete animation for recent searches
+        document.querySelectorAll('li button').forEach(btn => {
+            btn.addEventListener('click', (e) => {
+                const li = e.currentTarget.closest('li');
+                li.style.opacity = '0';
+                li.style.transform = 'translateX(20px)';
+                setTimeout(() => li.remove(), 300);
+            });
+        });
+    </script>
+</body></html>

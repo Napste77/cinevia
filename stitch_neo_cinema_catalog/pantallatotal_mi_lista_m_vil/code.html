@@ -1,0 +1,392 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PantallaTotal - Profile</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Sora:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@100..900&amp;family=Sora:wght@100..900&amp;display=swap" rel="stylesheet"/>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-card {
+            background: rgba(255, 255, 255, 0.03);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .glow-hover:hover {
+            box-shadow: 0 0 20px rgba(160, 216, 0, 0.15);
+        }
+        ::-webkit-scrollbar {
+            width: 4px;
+            height: 4px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: #2e3447;
+            border-radius: 10px;
+        }
+        .bg-mesh {
+            background-color: #0c1324;
+            background-image: radial-gradient(at 0% 0%, rgba(160, 216, 0, 0.05) 0px, transparent 50%),
+                              radial-gradient(at 100% 100%, rgba(208, 188, 255, 0.05) 0px, transparent 50%);
+        }
+    </style>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "primary": "#ffffff",
+                        "error": "#ffb4ab",
+                        "on-secondary-fixed-variant": "#5516be",
+                        "on-error": "#690005",
+                        "tertiary-fixed": "#dae2fd",
+                        "on-background": "#dce1fb",
+                        "on-surface-variant": "#c2caad",
+                        "secondary-container": "#571bc1",
+                        "tertiary-fixed-dim": "#bec6e0",
+                        "on-primary": "#253600",
+                        "inverse-surface": "#dce1fb",
+                        "on-tertiary-container": "#5c647a",
+                        "surface-container-lowest": "#070d1f",
+                        "on-secondary": "#3c0091",
+                        "surface": "#0c1324",
+                        "surface-dim": "#0c1324",
+                        "surface-container-low": "#151b2d",
+                        "on-tertiary-fixed-variant": "#3f465c",
+                        "primary-fixed-dim": "#a0d800",
+                        "surface-variant": "#2e3447",
+                        "surface-container-high": "#23293c",
+                        "tertiary": "#ffffff",
+                        "background": "#0c1324",
+                        "on-error-container": "#ffdad6",
+                        "outline": "#8c9479",
+                        "on-secondary-container": "#c4abff",
+                        "secondary": "#d0bcff",
+                        "secondary-fixed": "#e9ddff",
+                        "on-primary-fixed": "#141f00",
+                        "inverse-on-surface": "#2a3043",
+                        "secondary-fixed-dim": "#d0bcff",
+                        "on-tertiary-fixed": "#131b2e",
+                        "primary-container": "#b7f700",
+                        "primary-fixed": "#b7f700",
+                        "inverse-primary": "#4b6700",
+                        "tertiary-container": "#dae2fd",
+                        "error-container": "#93000a",
+                        "on-surface": "#dce1fb",
+                        "on-primary-fixed-variant": "#374e00",
+                        "outline-variant": "#434933",
+                        "on-primary-container": "#506e00",
+                        "surface-container-highest": "#2e3447",
+                        "surface-bright": "#33394c",
+                        "on-secondary-fixed": "#23005c",
+                        "surface-container": "#191f31",
+                        "on-tertiary": "#283044",
+                        "surface-tint": "#a0d800"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.25rem",
+                        "lg": "0.5rem",
+                        "xl": "0.75rem",
+                        "full": "9999px"
+                    },
+                    "spacing": {
+                        "margin-mobile": "20px",
+                        "container-max": "1440px",
+                        "margin-desktop": "64px",
+                        "gutter": "24px",
+                        "unit": "8px"
+                    },
+                    "fontFamily": {
+                        "headline-lg-mobile": ["Sora"],
+                        "body-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "display-xl": ["Sora"],
+                        "headline-lg": ["Sora"],
+                        "display-lg": ["Sora"],
+                        "label-md": ["Sora"]
+                    },
+                    "fontSize": {
+                        "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                        "display-xl": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                        "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                        "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+                    }
+                },
+            },
+        }
+    </script>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="bg-background text-on-surface font-body-md min-h-screen selection:bg-primary-fixed-dim selection:text-on-primary-fixed bg-mesh pb-24">
+<!-- TopAppBar -->
+<header class="bg-surface/80 dark:bg-surface/80 backdrop-blur-xl docked full-width top-0 z-50 sticky border-b border-surface-variant/20 flex justify-between items-center px-margin-mobile md:px-margin-desktop h-20 w-full">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary-fixed-dim text-3xl">movie_filter</span>
+<h1 class="font-display-lg text-headline-lg-mobile md:text-display-lg tracking-tighter text-primary dark:text-primary-fixed-dim uppercase">PantallaTotal</h1>
+</div>
+<div class="flex items-center gap-4">
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary transition-colors">notifications</button>
+<div class="w-10 h-10 rounded-full border border-primary-fixed-dim/30 overflow-hidden">
+<img class="w-full h-full object-cover" data-alt="A minimalist professional headshot of a user with sharp lighting against a dark navy blue background, reflecting the high-end cinematic aesthetic of the platform. The lighting is low-key with a subtle lime-green rim light on the edge of the silhouette, creating depth and a sophisticated mood." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBeX34LZzhmehZZpWBgbSr_nmoeAHaSqo9us8x7yrixSvYyz0XSD-lYt4_p3hT4FOVRWIxkSdFytbOAr6aNygLiCQuHqw8jIxaRLq9sy7NuGZ9S62bJLja87CaG4afBKEs4cHRb_OixylL6SXI07mWWXhNRjo4dICCIBoORY4yAqdKIU4YIe8hqLJcUEbXiMk7Q9q0JgFmjx4JIuDE_Sg9s5_dVvweWAw0xyMFI6sENDdIuHuJ757nO"/>
+</div>
+</div>
+</header>
+<main class="max-w-container-max mx-auto px-margin-mobile md:px-margin-desktop pt-8 space-y-12">
+<!-- User Profile Header -->
+<section class="flex flex-col md:flex-row items-center gap-6 md:gap-10">
+<div class="relative group">
+<div class="absolute -inset-1 bg-gradient-to-tr from-primary-fixed-dim to-secondary blur opacity-25 group-hover:opacity-50 transition duration-1000"></div>
+<div class="relative w-32 h-32 md:w-40 md:h-40 rounded-full overflow-hidden border-2 border-surface-variant">
+<img class="w-full h-full object-cover" data-alt="Close up of a minimalist user profile avatar with cinematic moody lighting. The person has a neutral, sophisticated expression. The background is a soft, deep slate blur with microscopic particles of light floating, matching the darkly vibrant brand personality." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBmNS-cSLh3_FaLlMsSycQWzolKvFxK4k4piGwsjvD8-oWzl4ZgUGsvRmJeIWYm0hx-1HKHIX9H_rGWE5qMIKk3RV4A5MQdk-f1Dxvb1I31ZuPmPezd9KJWDIUrDzqNb4d--ChOXBAIR0vtr17jk1_jaeGIcl9yszZdju4RuKcRn_w-3xaVREn5NdyyOrdxfpyAGgjY93ZUpeiPGPU24q41G9x4axSKdkjjK2ByPkUEmtkyhgWUTCf9"/>
+</div>
+<button class="absolute bottom-1 right-1 bg-primary-fixed-dim text-on-primary-fixed p-2 rounded-full shadow-lg hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-sm">edit</span>
+</button>
+</div>
+<div class="text-center md:text-left space-y-2">
+<h2 class="font-headline-lg-mobile md:font-headline-lg text-headline-lg-mobile md:text-headline-lg text-primary">Julian Vane</h2>
+<p class="text-on-surface-variant font-body-md">Premium Member • Joined Dec 2023</p>
+<div class="flex flex-wrap justify-center md:justify-start gap-2 pt-2">
+<span class="bg-surface-variant/50 border border-surface-variant text-secondary-fixed-dim px-3 py-1 rounded-full font-label-md text-xs uppercase tracking-widest">Cinephile</span>
+<span class="bg-surface-variant/50 border border-surface-variant text-secondary-fixed-dim px-3 py-1 rounded-full font-label-md text-xs uppercase tracking-widest">Director's Cut</span>
+</div>
+</div>
+</section>
+<!-- Watch History (Horizontal Scroller) -->
+<section class="space-y-6">
+<div class="flex justify-between items-end">
+<h3 class="font-headline-lg-mobile md:font-headline-lg text-primary">Continue Watching</h3>
+<button class="text-primary-fixed-dim font-label-md hover:underline flex items-center gap-1">
+                    View All <span class="material-symbols-outlined text-sm">arrow_forward</span>
+</button>
+</div>
+<div class="flex overflow-x-auto gap-6 pb-4 -mx-margin-mobile px-margin-mobile no-scrollbar">
+<!-- History Card 1 -->
+<div class="min-w-[280px] md:min-w-[340px] group cursor-pointer">
+<div class="relative aspect-video rounded-xl overflow-hidden glass-card">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A cinematic wide shot of a futuristic neon-lit city street at night under heavy rain. Electric violet and cyan reflections shimmer on the wet asphalt. Deep shadows and high contrast highlight the noir atmosphere of a high-end sci-fi film." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBJBZ5qUnSPyBLengqaTBX1iOzqfjmBP10cO7OgMfk1gQgAiD-NP4pKJcFgU0ga7Ve2bPBrJDeegPxpPW1COE2OT5colB5o5WRPF_Js-JY4H9zWvR7Uv2VCu-7lPwxsRH8P5QBVFQW1ScKxez_dxSbIV8m4UE7EBurZYjyulmLkJZBtBnD8qnBr93IlUqnSDdfnU8_fFdCLx-rmLENq1XY7HszbVTtrlhx_A0iEZ7z6gniUjr1b8Pji"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-surface-variant">
+<div class="h-full bg-primary-fixed-dim w-[65%]"></div>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-5xl text-primary drop-shadow-xl" data-weight="fill">play_circle</span>
+</div>
+</div>
+<div class="mt-3">
+<h4 class="font-label-md text-primary truncate">Neon Protocol</h4>
+<p class="text-xs text-on-surface-variant">S1 : E4 • 12m remaining</p>
+</div>
+</div>
+<!-- History Card 2 -->
+<div class="min-w-[280px] md:min-w-[340px] group cursor-pointer">
+<div class="relative aspect-video rounded-xl overflow-hidden glass-card">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="An atmospheric shot of a lone astronaut standing on the edge of a colossal red desert canyon on a distant planet. Two moons are visible in a dark indigo sky. The lighting is ethereal and vast, emphasizing cinematic scale and lonely exploration." src="https://lh3.googleusercontent.com/aida-public/AB6AXuABWaYSGLuWNSSHq7u9YIoZ3-JIDg7bRi0ebXAoytyqljshtw375G35YMkxdoGIJ2xAbo5ATkkBouzVC0n-j3siYHtlbNhwhD5dB4ykZYsqUmU1KvtDkRFJ9LEBeP7xkIf45PRLpYKDsr9UPmWVdX03YNuw3qX_8F7R6zV9u7iB_ZhUT_iNhjC31oX0jvIIbXR9kiQcGz33otepKL_fgPertLVwov4oT7J5bntyzrfLlnYtE3w0ge1h"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-surface-variant">
+<div class="h-full bg-primary-fixed-dim w-[8%]"></div>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-5xl text-primary drop-shadow-xl" data-weight="fill">play_circle</span>
+</div>
+</div>
+<div class="mt-3">
+<h4 class="font-label-md text-primary truncate">Solstice Horizon</h4>
+<p class="text-xs text-on-surface-variant">Movie • 1h 45m remaining</p>
+</div>
+</div>
+<!-- History Card 3 -->
+<div class="min-w-[280px] md:min-w-[340px] group cursor-pointer">
+<div class="relative aspect-video rounded-xl overflow-hidden glass-card">
+<img class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="A high-contrast black and white cinematic shot of a classic 1950s jazz club. Smoke curls through the air under a single warm spotlight. A saxophone player is silhouetted against a brick wall. Sophisticated, moody, and nostalgic noir style." src="https://lh3.googleusercontent.com/aida-public/AB6AXuBROanxv28HGSuswwACEPdt4RpWbEaibrhHL_1Zzm8EnS5X4OliCNCkDEdeAB_1WuVfSxxNiYH1OMVuQvzGWf7rvz5C_moffG9r05bnEYlG6jqxKRAqvoYbA251wa-Fm-K_OPTrAoOn-yJ4Sobd2DwTqE-nn_2pVG3sRAoGEV26_lRtQhky0ONshhVCVEfm7xoAHq9-PQy97zWq5rcJi_T7Ju_2v6g3QdKvu71N-48XgJFEEeQ7viSe"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent"></div>
+<div class="absolute bottom-0 left-0 w-full h-1 bg-surface-variant">
+<div class="h-full bg-primary-fixed-dim w-[92%]"></div>
+</div>
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<span class="material-symbols-outlined text-5xl text-primary drop-shadow-xl" data-weight="fill">play_circle</span>
+</div>
+</div>
+<div class="mt-3">
+<h4 class="font-label-md text-primary truncate">Midnight Echoes</h4>
+<p class="text-xs text-on-surface-variant">Movie • 8m remaining</p>
+</div>
+</div>
+</div>
+</section>
+<!-- My List (Bento Gallery Style) -->
+<section class="space-y-6">
+<h3 class="font-headline-lg-mobile md:font-headline-lg text-primary">My List</h3>
+<div class="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-6 gap-4 md:gap-6">
+<!-- Poster 1 (Large Focus) -->
+<div class="col-span-2 row-span-2 group cursor-pointer relative overflow-hidden rounded-2xl glass-card">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" data-alt="A stunning cinematic movie poster featuring a Close-up of a glass sphere reflecting a burning forest. The colors are vibrant oranges against deep charcoal grays. High-end editorial photography style with sharp focus and cinematic depth of field." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAdfEGec2cxlhJpK3rgWaV0hVkwi170W_ENe5A5i2tPlFn8uQgtCU91sIy562dys0fQt6ybFLFvpuoR9aRrDt9VYapJbZwTqp4euhSrSWtkINv_KJa7rvMaBc7u3ndjXgNBgTaCnOurwFSXG4clNAyFHFRu4wJdVPdB0JTPMHTGUeWMgTwbFjA8c5F6SKsxYEveQ_KOuI7W5fNBku6DhNIYkUd34pD2TM586SWG-aGSNuGtv0j0f2as"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/90 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity flex flex-col justify-end p-6">
+<span class="text-primary-fixed-dim font-label-md text-xs mb-1">DRAMA</span>
+<h4 class="font-headline-lg-mobile text-primary">The Last Refraction</h4>
+<div class="flex gap-2 mt-2">
+<button class="bg-primary-fixed-dim text-on-primary-fixed px-4 py-2 rounded-full font-label-md text-sm">Watch Now</button>
+<button class="bg-white/10 backdrop-blur-md p-2 rounded-full"><span class="material-symbols-outlined text-sm">remove</span></button>
+</div>
+</div>
+</div>
+<!-- Poster 2 -->
+<div class="group cursor-pointer relative overflow-hidden rounded-xl aspect-[2/3] glass-card">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="A minimalist film poster with a striking silhouette of a bird made of digital glitches and binary code. The background is a flat matte deep navy. The aesthetic is clean, technological, and mysterious." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDH6jjxBusH3tZkPgmBLYwFXfVYZHkWfqCq9t7wkAjYI9iEN2ssU--F44DinLUZCIFxtjWL-65qT19b0GkkXb_CTuhH6ePxPVUd2l4hAUMO43Bdvgvdg7tsbXPZ9kFtwzr6G7eO4P1vTjwZYCRnVKsFtN9XiB9sdY2TcSURgpWv26_pHPzcy76QGBj8SxONkmRVVip7uB3ZKdw7fos0Dh1YfN-syWM-geE6HbvKe8vDVkep7YkRnP7n"/>
+<div class="absolute top-2 right-2 bg-black/50 backdrop-blur-md p-1.5 rounded-full">
+<span class="material-symbols-outlined text-sm text-primary-fixed-dim" data-weight="fill">bookmark</span>
+</div>
+</div>
+<!-- Poster 3 -->
+<div class="group cursor-pointer relative overflow-hidden rounded-xl aspect-[2/3] glass-card">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="A vibrant cinematic still of an underwater city glowing with bioluminescent blue and green light. Shoals of metallic fish swim through tall coral-like structures. High fantasy sci-fi mood with rich textures and atmospheric glow." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCVknq8-0D9ie8u51pyIpvzJu5cYlZ92nidbru09Gm3TCo5-wkn9de5cNmZocs7XRE-AiZ8HQkejeN53PB70wsKKrxniiC2v1svkllCQbp5M2VwVjLsFLKELTOO7omXwYPihKV13irM1lP75UY5W-N38bqKb61uc0HtI_oKfFD808aFuGsvil8flXUg21ukI1VgTRtlrqecyQ2bm3XZMm1pjrS6zG_MgFKTW6vyhqoRoUgIjFyB1XsX"/>
+<div class="absolute top-2 right-2 bg-black/50 backdrop-blur-md p-1.5 rounded-full">
+<span class="material-symbols-outlined text-sm text-primary-fixed-dim" data-weight="fill">bookmark</span>
+</div>
+</div>
+<!-- Poster 4 -->
+<div class="group cursor-pointer relative overflow-hidden rounded-xl aspect-[2/3] glass-card">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="A stylized film poster showing an old analog television in the middle of a dense green jungle. The screen shows a bright eye staring back. Surrealist cinematic style with high saturation and deep shadows." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAf8D2lq4WW8UbVr1LtQN69OGMKkN7vaHQrl8p3NshRmVX3HkJInRUPiDEEuJnBiMHu0_rVGsS91x7anga1p2tSKeT8VY034YBdcfHdIFyLa4GQ4zog08UFvGlKfYpUUpAHUY0YkDA_3JrLHpb_NwUxxpvkGx6xNBH7kcS_xBvAOuvT01KH66TOkjl_6m6g0ph8cpRQKNJIW_niwRofCuka4xz6SGMZ2oInT0Q33xChang7wN8b2CfH"/>
+<div class="absolute top-2 right-2 bg-black/50 backdrop-blur-md p-1.5 rounded-full">
+<span class="material-symbols-outlined text-sm text-primary-fixed-dim" data-weight="fill">bookmark</span>
+</div>
+</div>
+<!-- Poster 5 -->
+<div class="group cursor-pointer relative overflow-hidden rounded-xl aspect-[2/3] glass-card">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Cinematic close-up portrait of a woman with tears that look like liquid gold running down her face. The lighting is warm and dramatic, highlighting every detail of the skin and the metallic shine. Prestigious art-house film aesthetic." src="https://lh3.googleusercontent.com/aida-public/AB6AXuCdFS2_I2CFyqVvZFc5xEfojNCKYXgH4AbKDMaaf7eoedWzgGbTXZjgA4c4V8FQw20I0XLwH7ooBCC73gtaAPLh8Rkqly-HYoTvo2uzp4WdWIkMvjrtONVN4ZZP83jrDyPQZ7ZZPNYmT6Xu0gWR1xItkN7BWOoZken_C_RReQb4R_nQ8sLDBdR5PXJkT_TK0EaowT2Q5ypUmyNBVOSVfGKnaytZZCfC05yAWLS4lhShKt-pevEk0wbf"/>
+<div class="absolute top-2 right-2 bg-black/50 backdrop-blur-md p-1.5 rounded-full">
+<span class="material-symbols-outlined text-sm text-primary-fixed-dim" data-weight="fill">bookmark</span>
+</div>
+</div>
+<!-- Poster 6 -->
+<div class="group cursor-pointer relative overflow-hidden rounded-xl aspect-[2/3] glass-card">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="An abstract cinematic poster of a black hole with a spinning ring of fire and light around it. The background is a dense star-field. Intense scale, awe-inspiring lighting, and deep cosmic blacks." src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsc5naQKZMknoDaSVPlJg-Lvl83k_OP4HZFQUpwZOt2V2YjDmXchW2Ip9K7W67dU7K_IQep2V7KjUOqZzKDXfEipbEksJYE7rVkPP3zF-I-iX7Qxx0vsXeHe1PcF74y5cltB06ipyDXeO9xZwMr8rUDM3eYeePhmFUWuCVOx01Ab5KSJNHSE7CzFG5pc93XsTA8pEXhuOg6KR3eh4j3SFPYwvneYmon9QhH3Uret9BnQFYVWEhqgBc"/>
+<div class="absolute top-2 right-2 bg-black/50 backdrop-blur-md p-1.5 rounded-full">
+<span class="material-symbols-outlined text-sm text-primary-fixed-dim" data-weight="fill">bookmark</span>
+</div>
+</div>
+<!-- Poster 7 -->
+<div class="group cursor-pointer relative overflow-hidden rounded-xl aspect-[2/3] glass-card">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-500" data-alt="Film still showing a red classic car driving through a white salt flat under a pale pink sunset. The image is clean, symmetrical, and beautifully composed with editorial fashion film vibes." src="https://lh3.googleusercontent.com/aida-public/AB6AXuAnBoc2Otex14oE3M4rv-I0CWyTajCBHPZfCS20JUtgE4933sT4qbuiMkQElH9JZVzNNSVB3wVJyzVktOe0NOLhB9984zeELJkDU4mqjFOmm8zL_eq7C_E3wO4DSw87-CTEcjoYt10kNwQzrOHAlQe3uufULWz5A5xrpyhEAx_3JAHsN2Xz7P0-t29dktdg8hV1AIklPsevxY2tBaebUIouvywpdEwRmxfiHSyqEf1gxzAxrkCQDzs-"/>
+<div class="absolute top-2 right-2 bg-black/50 backdrop-blur-md p-1.5 rounded-full">
+<span class="material-symbols-outlined text-sm text-primary-fixed-dim" data-weight="fill">bookmark</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Settings / Account Options -->
+<section class="space-y-6 pb-12">
+<h3 class="font-headline-lg-mobile md:font-headline-lg text-primary">Account Settings</h3>
+<div class="glass-card rounded-2xl overflow-hidden divide-y divide-surface-variant/30">
+<!-- Item 1 -->
+<div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary-fixed-dim group-hover:bg-primary-fixed-dim group-hover:text-on-primary-fixed transition-colors">
+<span class="material-symbols-outlined">person_outline</span>
+</div>
+<div>
+<p class="font-label-md text-primary">Personal Information</p>
+<p class="text-xs text-on-surface-variant">Update your name, email and avatar</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- Item 2 -->
+<div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary-fixed-dim group-hover:bg-primary-fixed-dim group-hover:text-on-primary-fixed transition-colors">
+<span class="material-symbols-outlined">payments</span>
+</div>
+<div>
+<p class="font-label-md text-primary">Subscription &amp; Billing</p>
+<p class="text-xs text-on-surface-variant">Manage your PantallaTotal Premium plan</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- Item 3 -->
+<div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary-fixed-dim group-hover:bg-primary-fixed-dim group-hover:text-on-primary-fixed transition-colors">
+<span class="material-symbols-outlined">settings_overscan</span>
+</div>
+<div>
+<p class="font-label-md text-primary">Playback &amp; Quality</p>
+<p class="text-xs text-on-surface-variant">Set your default resolution and audio</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- Item 4 -->
+<div class="flex items-center justify-between p-5 hover:bg-surface-variant/30 transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-surface-container-high flex items-center justify-center text-primary-fixed-dim group-hover:bg-primary-fixed-dim group-hover:text-on-primary-fixed transition-colors">
+<span class="material-symbols-outlined">lock</span>
+</div>
+<div>
+<p class="font-label-md text-primary">Privacy &amp; Security</p>
+<p class="text-xs text-on-surface-variant">Two-factor authentication and passwords</p>
+</div>
+</div>
+<span class="material-symbols-outlined text-on-surface-variant">chevron_right</span>
+</div>
+<!-- Item 5 (Logout) -->
+<div class="flex items-center justify-between p-5 hover:bg-error/10 transition-colors cursor-pointer group">
+<div class="flex items-center gap-4">
+<div class="w-10 h-10 rounded-xl bg-error-container/30 flex items-center justify-center text-error">
+<span class="material-symbols-outlined">logout</span>
+</div>
+<div>
+<p class="font-label-md text-error">Logout</p>
+<p class="text-xs text-error/60">Sign out of your account on this device</p>
+</div>
+</div>
+</div>
+</div>
+</section>
+</main>
+<!-- BottomNavBar -->
+<nav class="bg-surface/80 dark:bg-surface/80 backdrop-blur-xl fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 pb-safe px-4 border-t border-surface-variant/10 rounded-t-xl">
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-all p-2 w-16">
+<span class="material-symbols-outlined">home</span>
+<span class="font-label-md text-[10px]">Explore</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-all p-2 w-16">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-md text-[10px]">Search</span>
+</button>
+<button class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-all p-2 w-16">
+<span class="material-symbols-outlined">bookmarks</span>
+<span class="font-label-md text-[10px]">My List</span>
+</button>
+<button class="flex flex-col items-center justify-center text-primary-fixed-dim font-bold drop-shadow-[0_0_8px_rgba(160,216,0,0.4)] transition-transform duration-200 scale-110 p-2 w-16">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">person</span>
+<span class="font-label-md text-[10px]">Profile</span>
+</button>
+</nav>
+<script>
+        // Simple micro-interaction for horizontal scrolling with mouse wheel
+        const scrollers = document.querySelectorAll('.flex.overflow-x-auto');
+        scrollers.forEach(scroller => {
+            scroller.addEventListener('wheel', (evt) => {
+                evt.preventDefault();
+                scroller.scrollLeft += evt.deltaY;
+            });
+        });
+    </script>
+</body></html>

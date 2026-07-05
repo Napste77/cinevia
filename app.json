@@ -1,0 +1,38 @@
+{
+  "expo": {
+    "name": "Cinevia",
+    "slug": "cinevia",
+    "scheme": "cinevia",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "userInterfaceStyle": "dark",
+    "backgroundColor": "#0c1324",
+    "splash": {
+      "backgroundColor": "#0c1324"
+    },
+    "assetBundlePatterns": [
+      "**/*"
+    ],
+    "ios": {
+      "supportsTablet": true,
+      "bundleIdentifier": "com.nastex.cinevia"
+    },
+    "android": {
+      "package": "com.nastex.cinevia",
+      "permissions": [
+        "ACCESS_COARSE_LOCATION"
+      ]
+    },
+    "web": {
+      "bundler": "metro",
+      "backgroundColor": "#0c1324",
+      "name": "Cinevia — Descubrí qué ver",
+      "shortName": "Cinevia",
+      "themeColor": "#0c1324",
+      "description": "Cinevia: descubrí películas y series en tendencia y dónde verlas en tus plataformas de streaming."
+    },
+    "plugins": [
+      "expo-font"
+    ]
+  }
+}

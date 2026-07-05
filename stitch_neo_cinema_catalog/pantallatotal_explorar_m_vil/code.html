@@ -1,0 +1,333 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>PantallaTotal | Explore</title>
+<!-- Material Symbols -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Google Fonts: Sora & Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600&amp;family=Sora:wght@400;600;700;800&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<!-- Tailwind CSS -->
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            "colors": {
+                    "primary": "#ffffff",
+                    "error": "#ffb4ab",
+                    "on-secondary-fixed-variant": "#5516be",
+                    "on-error": "#690005",
+                    "tertiary-fixed": "#dae2fd",
+                    "on-background": "#dce1fb",
+                    "on-surface-variant": "#c2caad",
+                    "secondary-container": "#571bc1",
+                    "tertiary-fixed-dim": "#bec6e0",
+                    "on-primary": "#253600",
+                    "inverse-surface": "#dce1fb",
+                    "on-tertiary-container": "#5c647a",
+                    "surface-container-lowest": "#070d1f",
+                    "on-secondary": "#3c0091",
+                    "surface": "#0c1324",
+                    "surface-dim": "#0c1324",
+                    "surface-container-low": "#151b2d",
+                    "on-tertiary-fixed-variant": "#3f465c",
+                    "primary-fixed-dim": "#a0d800",
+                    "surface-variant": "#2e3447",
+                    "surface-container-high": "#23293c",
+                    "tertiary": "#ffffff",
+                    "background": "#0c1324",
+                    "on-error-container": "#ffdad6",
+                    "outline": "#8c9479",
+                    "on-secondary-container": "#c4abff",
+                    "secondary": "#d0bcff",
+                    "secondary-fixed": "#e9ddff",
+                    "on-primary-fixed": "#141f00",
+                    "inverse-on-surface": "#2a3043",
+                    "secondary-fixed-dim": "#d0bcff",
+                    "on-tertiary-fixed": "#131b2e",
+                    "primary-container": "#b7f700",
+                    "primary-fixed": "#b7f700",
+                    "inverse-primary": "#4b6700",
+                    "tertiary-container": "#dae2fd",
+                    "error-container": "#93000a",
+                    "on-surface": "#dce1fb",
+                    "on-primary-fixed-variant": "#374e00",
+                    "outline-variant": "#434933",
+                    "on-primary-container": "#506e00",
+                    "surface-container-highest": "#2e3447",
+                    "surface-bright": "#33394c",
+                    "on-secondary-fixed": "#23005c",
+                    "surface-container": "#191f31",
+                    "on-tertiary": "#283044",
+                    "surface-tint": "#a0d800"
+            },
+            "borderRadius": {
+                    "DEFAULT": "0.25rem",
+                    "lg": "0.5rem",
+                    "xl": "0.75rem",
+                    "full": "9999px"
+            },
+            "spacing": {
+                    "margin-mobile": "20px",
+                    "container-max": "1440px",
+                    "margin-desktop": "64px",
+                    "gutter": "24px",
+                    "unit": "8px"
+            },
+            "fontFamily": {
+                    "headline-lg-mobile": ["Sora"],
+                    "body-md": ["Inter"],
+                    "body-lg": ["Inter"],
+                    "display-xl": ["Sora"],
+                    "headline-lg": ["Sora"],
+                    "display-lg": ["Sora"],
+                    "label-md": ["Sora"]
+            },
+            "fontSize": {
+                    "headline-lg-mobile": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                    "body-md": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                    "body-lg": ["18px", {"lineHeight": "28px", "fontWeight": "400"}],
+                    "display-xl": ["64px", {"lineHeight": "72px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "600"}],
+                    "display-lg": ["48px", {"lineHeight": "56px", "letterSpacing": "-0.02em", "fontWeight": "700"}],
+                    "label-md": ["14px", {"lineHeight": "20px", "letterSpacing": "0.05em", "fontWeight": "600"}]
+            }
+          },
+        },
+      }
+    </script>
+<style>
+        body {
+            background-color: #0c1324;
+            color: #dce1fb;
+            font-family: 'Inter', sans-serif;
+            overflow-x: hidden;
+        }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(46, 52, 71, 0.4);
+            backdrop-filter: blur(20px);
+            border: 1px solid rgba(255, 255, 255, 0.05);
+        }
+        .hero-gradient {
+            background: linear-gradient(0deg, #0c1324 0%, rgba(12, 19, 36, 0.6) 50%, transparent 100%);
+        }
+        .text-glow-primary {
+            text-shadow: 0 0 20px rgba(160, 216, 0, 0.3);
+        }
+        .hide-scrollbar::-webkit-scrollbar {
+            display: none;
+        }
+        .hide-scrollbar {
+            -ms-overflow-style: none;
+            scrollbar-width: none;
+        }
+        /* Asymmetrical Grid Adjustments */
+        .asymmetric-grid {
+            display: grid;
+            grid-template-columns: repeat(12, 1fr);
+            gap: 24px;
+        }
+    </style>
+<style>
+    body {
+      min-height: max(884px, 100dvh);
+    }
+  </style>
+</head>
+<body class="min-h-screen pb-24 lg:pb-0 lg:flex">
+<!-- NavigationDrawer (Desktop Only) -->
+<aside class="hidden lg:flex flex-col h-screen sticky top-0 py-8 bg-surface dark:bg-surface border-r border-surface-variant/20 w-64 shrink-0 z-50">
+<div class="font-display-lg text-display-lg text-primary p-margin-desktop mb-8">PantallaTotal</div>
+<nav class="flex flex-col space-y-2">
+<a class="bg-primary-container text-on-primary-container rounded-r-full font-bold ml-0 pr-6 py-3 flex items-center gap-4 transition-transform translate-x-1" href="#">
+<span class="material-symbols-outlined ml-6">home</span>
+<span class="font-label-md text-label-md">Explore</span>
+</a>
+<a class="text-on-surface-variant px-6 py-3 flex items-center gap-4 hover:bg-surface-variant/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-md text-label-md">Search</span>
+</a>
+<a class="text-on-surface-variant px-6 py-3 flex items-center gap-4 hover:bg-surface-variant/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">bookmarks</span>
+<span class="font-label-md text-label-md">My List</span>
+</a>
+<a class="text-on-surface-variant px-6 py-3 flex items-center gap-4 hover:bg-surface-variant/50 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">settings</span>
+<span class="font-label-md text-label-md">Settings</span>
+</a>
+</nav>
+</aside>
+<main class="flex-1 min-w-0">
+<!-- TopAppBar (Mobile/Tablet) -->
+<header class="sticky top-0 z-50 flex justify-between items-center px-margin-mobile md:px-margin-desktop h-20 w-full bg-surface/80 dark:bg-surface/80 backdrop-blur-xl border-b border-surface-variant/20 lg:hidden">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary text-3xl">movie_filter</span>
+<h1 class="font-display-lg text-display-lg-mobile md:text-display-lg tracking-tighter text-primary">PantallaTotal</h1>
+</div>
+<div class="w-10 h-10 rounded-full overflow-hidden border-2 border-primary-container/30 scale-95 active:scale-90 transition-transform cursor-pointer">
+<img alt="User Profile" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDi04_6nyoIZe2KxWp-Ofz96mo38qpoQ1sPq4G3xk_Y-QHSX1tXJ1RyL6-r86DA5VjFVFH6Aic6c5iaZfTZxp25Qi9B1vPF_xRBtf_RmeLpMfSyL2NQTfxSYnDxh72be9fEklwUpeDHnBloK-SndtrDPBCoN4UX78dSkUJyMFvPkHvms6ZN0Q67TCnykNJWooA57SoY_oTqZJp5uiBlKqiPJZp0UWEvH_EqqMvRqRqATlepjBIrHW6V"/>
+</div>
+</header>
+<!-- Hero Section: Dune Part Two -->
+<section class="relative w-full h-[751px] overflow-hidden">
+<div class="absolute inset-0 bg-cover bg-center" style="background-image: url('https://lh3.googleusercontent.com/aida-public/AB6AXuDk5tP8qNEqvN7iO6Qhxx0Mq_bXj3vHM4EHxbId4SSx-o8BYFEc2gDXiLWy1oea-OMMkmUeOvvMXP3TdE0WhAZLtBHFpybXp0aHMb3pgqaVm6rMVB4yJGG5LGnM8Mh-K2-v5wrbjh7SFwYJ1XV87goaI6RCNF4Se7v65CWsOikrVCupYbDPluPusMxL5RWFkTDOOs_qzWfYH6CSO2B6WhvvWsF2PNEtv5U0HS2IOnJ0oT-H2TRBOuSV')"></div>
+<div class="absolute inset-0 hero-gradient"></div>
+<div class="absolute bottom-0 left-0 w-full px-margin-mobile md:px-margin-desktop pb-20 md:pb-32 flex flex-col items-start max-w-4xl">
+<div class="flex items-center gap-2 mb-4">
+<span class="bg-primary-container text-on-primary-container px-3 py-1 rounded-full font-label-md text-[10px] uppercase tracking-widest">Premium Selection</span>
+<span class="text-on-surface-variant font-label-md text-label-md">2024 • Sci-Fi • 2h 46m</span>
+</div>
+<h2 class="font-display-xl text-4xl md:text-display-xl mb-6 leading-tight">Dune: Part Two</h2>
+<p class="font-body-lg text-body-md md:text-body-lg text-on-surface/80 mb-10 max-w-2xl">
+                    Paul Atreides unites with Chani and the Fremen while on a warpath of revenge against the conspirators who destroyed his family.
+                </p>
+<div class="flex flex-wrap gap-4">
+<button class="bg-primary-fixed text-on-primary-fixed px-8 py-4 rounded-xl font-bold flex items-center gap-3 hover:scale-105 active:scale-95 transition-all shadow-lg shadow-primary-fixed/20">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">play_arrow</span>
+<span class="font-label-md">Play Now</span>
+</button>
+<button class="glass-panel text-primary px-8 py-4 rounded-xl font-bold flex items-center gap-3 hover:bg-surface-variant/40 transition-all">
+<span class="material-symbols-outlined">add</span>
+<span class="font-label-md">My List</span>
+</button>
+</div>
+</div>
+</section>
+<!-- Genre Chips -->
+<section class="py-12 px-margin-mobile md:px-margin-desktop overflow-hidden">
+<div class="flex gap-4 overflow-x-auto hide-scrollbar pb-4">
+<button class="bg-primary-container text-on-primary-container px-6 py-3 rounded-full font-label-md text-label-md whitespace-nowrap transition-transform hover:scale-105 active:scale-95">All Movies</button>
+<button class="bg-surface-container-high text-on-surface px-6 py-3 rounded-full font-label-md text-label-md whitespace-nowrap hover:bg-surface-variant transition-all">Action</button>
+<button class="bg-surface-container-high text-on-surface px-6 py-3 rounded-full font-label-md text-label-md whitespace-nowrap hover:bg-surface-variant transition-all">Sci-Fi</button>
+<button class="bg-surface-container-high text-on-surface px-6 py-3 rounded-full font-label-md text-label-md whitespace-nowrap hover:bg-surface-variant transition-all">Drama</button>
+<button class="bg-surface-container-high text-on-surface px-6 py-3 rounded-full font-label-md text-label-md whitespace-nowrap hover:bg-surface-variant transition-all">Noir</button>
+<button class="bg-surface-container-high text-on-surface px-6 py-3 rounded-full font-label-md text-label-md whitespace-nowrap hover:bg-surface-variant transition-all">Documentary</button>
+<button class="bg-surface-container-high text-on-surface px-6 py-3 rounded-full font-label-md text-label-md whitespace-nowrap hover:bg-surface-variant transition-all">Animation</button>
+<button class="bg-surface-container-high text-on-surface px-6 py-3 rounded-full font-label-md text-label-md whitespace-nowrap hover:bg-surface-variant transition-all">Thriller</button>
+</div>
+</section>
+<!-- Trending Now -->
+<section class="py-8 px-margin-mobile md:px-margin-desktop">
+<div class="flex justify-between items-end mb-8">
+<h3 class="font-headline-lg text-headline-lg text-primary">Trending Now</h3>
+<a class="text-primary-fixed-dim font-label-md text-label-md hover:underline decoration-2 underline-offset-8 transition-all" href="#">View All</a>
+</div>
+<div class="flex gap-gutter overflow-x-auto hide-scrollbar">
+<!-- Trending Card 1 -->
+<div class="group relative min-w-[280px] md:min-w-[340px] aspect-[2/3] rounded-3xl overflow-hidden cursor-pointer">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDbsze8rAsOLwTMqKNm4eHwKg5mIuRBmQ_3oSGwHbt_T1jfnJbszhkyCFRvwy_ZU0La3BV8axqpFQgv29ps0XvbBAFWuz8K4XlaBAH_rjJv33NGaozAaOTj_Cr2h9ZW0tcLfHn_TnpdrWxs5G3MtYdI-6F6QB7S_BLDSV4JCCgEuDRcipcU4_1rMWdUOLiuOFQPxDTa77M60jmZuaYykIndFB2TTQllpFCO1tKhu_R2CXDCmNVs_tdO"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent opacity-60"></div>
+<div class="absolute bottom-0 left-0 p-6 w-full">
+<div class="flex gap-2 mb-2">
+<span class="text-[10px] bg-secondary-container/80 text-on-secondary-container px-2 py-0.5 rounded-full uppercase font-bold tracking-tighter">4K Ultra</span>
+</div>
+<h4 class="font-headline-lg text-headline-lg-mobile text-white drop-shadow-md">Neon Circuit</h4>
+<div class="h-1 w-0 bg-primary-fixed-dim transition-all duration-500 group-hover:w-full mt-2"></div>
+</div>
+</div>
+<!-- Trending Card 2 -->
+<div class="group relative min-w-[280px] md:min-w-[340px] aspect-[2/3] rounded-3xl overflow-hidden cursor-pointer">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBDweCLRjA-MWT5BpXOeg953ioALLSrX_h8c_SJDrZDvGrhaSAKo4ADXMB3lebCSnRHKJkQQTGLg9AkzqQn2ZQAu5JBGPevyTT_vGUWRk17RTu1mGWvhAnurPnuprjTz-96VRnRPHW0g_ZOdp5JuWOXbwYdxTzyt9S-AEznaNFNnvmfZkwnZtOfZne5N-7zgZX86JQ2D4VmMwD0R7AgRzLnW0WacDEWWjnjQY5tgUrQXe1Ah6fMtMOk"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent opacity-60"></div>
+<div class="absolute bottom-0 left-0 p-6 w-full">
+<div class="flex gap-2 mb-2">
+<span class="text-[10px] bg-secondary-container/80 text-on-secondary-container px-2 py-0.5 rounded-full uppercase font-bold tracking-tighter">HDR</span>
+</div>
+<h4 class="font-headline-lg text-headline-lg-mobile text-white drop-shadow-md">Void Voyager</h4>
+<div class="h-1 w-0 bg-primary-fixed-dim transition-all duration-500 group-hover:w-full mt-2"></div>
+</div>
+</div>
+<!-- Trending Card 3 -->
+<div class="group relative min-w-[280px] md:min-w-[340px] aspect-[2/3] rounded-3xl overflow-hidden cursor-pointer">
+<img class="w-full h-full object-cover transition-transform duration-700 group-hover:scale-110" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDVN4h5lGmNxMm7y0y8mbAgIdSwLu1XaRowWCE16Jum136nKjbevZdvFUfnN1tKoD3yGcZy5ijIQC8pbTWD3pe4xyNtdIOQRyfeBlGTOG1VYwtciJvPpD27JSnm0TluDduj9CGPgA74M8DKT5s3nJll4PA6KaN192VwvYxwzibtf-vL1S1qSRNWrXKePLxDSFJyyMVhqqoHzzYcwlnyIJRCN1-lMODGRyOYg30Exix42QGp-i0bUzx8"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface via-transparent to-transparent opacity-60"></div>
+<div class="absolute bottom-0 left-0 p-6 w-full">
+<div class="flex gap-2 mb-2">
+<span class="text-[10px] bg-secondary-container/80 text-on-secondary-container px-2 py-0.5 rounded-full uppercase font-bold tracking-tighter">New</span>
+</div>
+<h4 class="font-headline-lg text-headline-lg-mobile text-white drop-shadow-md">Silent Echo</h4>
+<div class="h-1 w-0 bg-primary-fixed-dim transition-all duration-500 group-hover:w-full mt-2"></div>
+</div>
+</div>
+</div>
+</section>
+<!-- New Releases (Asymmetrical Grid) -->
+<section class="py-16 px-margin-mobile md:px-margin-desktop">
+<h3 class="font-headline-lg text-headline-lg text-primary mb-10">New Releases</h3>
+<div class="asymmetric-grid grid-cols-4 md:grid-cols-12">
+<!-- Main Large Feature -->
+<div class="col-span-4 md:col-span-8 row-span-2 group relative rounded-3xl overflow-hidden cursor-pointer h-[400px] md:h-[600px]">
+<img class="w-full h-full object-cover transition-transform duration-1000 group-hover:scale-105" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDhm-hnwwfdUsXzZ6xWFflEsnzt3n8hhdZHeFrX-UsfzbOlml0IPkuhrlRTP7smCsm9iVY2tE1NM4tAbEbRPwghqU_Afw90XyaSRnu-K6RlE4wXO4ObMLWtiBKJAs26m2FlxPd5dUY7cv8mD7zP6FOYOaFkWxExJr22RYhtlJtCq9IuakNjgneXK-f1oEYhLmMdXodlaQNZxM0DbZZpPya5AY0_GVd6742rCTZEuExuQOyBsmoIxamd"/>
+<div class="absolute inset-0 bg-gradient-to-t from-surface/90 to-transparent"></div>
+<div class="absolute bottom-0 left-0 p-8">
+<h4 class="font-display-lg text-headline-lg md:text-display-lg mb-4">Aether City</h4>
+<p class="font-body-md text-body-md text-on-surface/70 max-w-md hidden md:block">In a world where memories are traded like currency, one detective uncovers a conspiracy that could delete history itself.</p>
+<button class="mt-6 flex items-center gap-2 text-primary-fixed-dim font-bold">
+                            Watch Trailer <span class="material-symbols-outlined">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Secondary Small Features -->
+<div class="col-span-2 md:col-span-4 group relative rounded-3xl overflow-hidden cursor-pointer h-[288px]">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCEzxwF1UG2GXxSzKMUA_AxzVLVt6RW2RDpNb0Yf732cHOuMFyQ0KpDxuRGikVN6u3meIK2P8kXzHzG5c058ZbeQCM2y3QmmiCVsvvdGtydOxltYZAJqqiJOfNcYaVwPY8wLiH4S0hl6ipvZZ5sWRg5W6JpZN4XZWaY6lqLiRGXJCtcv5pezbMVSKHhjtboBkaYFge2mvIofYHHxvrlqceNWTW1P98MSg0b9b-o1cu76vtu4JpoZ9vs"/>
+<div class="absolute inset-0 glass-panel opacity-0 group-hover:opacity-40 transition-opacity"></div>
+<div class="absolute bottom-4 left-4">
+<span class="font-label-md text-label-md text-white font-bold">Frozen Path</span>
+</div>
+</div>
+<div class="col-span-2 md:col-span-4 group relative rounded-3xl overflow-hidden cursor-pointer h-[288px]">
+<img class="w-full h-full object-cover group-hover:scale-110 transition-transform duration-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBfEYUigFtKYl0BM1_GvvCjVz5UIJyTeUqzSqbZSriz8BQa7EGaungQsosbYHFfRjkRndL9_dl5bS2wMak2L1wK97dx8dnHZZbCanPlfbo1iqzdjOx9LeFKbx1DI100mbh8novroA1tTyqW69KzuN7VfViCCdUaPRp_mJVWMuVXgKk2-EW7kBO0YMUlg2Kf9IvO78oam0YOzGZrRf2nSyMVNOI8ky28-W12BcxGbUYslKrZ5lGviv9K"/>
+<div class="absolute inset-0 glass-panel opacity-0 group-hover:opacity-40 transition-opacity"></div>
+<div class="absolute bottom-4 left-4">
+<span class="font-label-md text-label-md text-white font-bold">Neural Soul</span>
+</div>
+</div>
+</div>
+</section>
+<!-- Footer Spacer for Mobile Nav -->
+<div class="h-10 lg:hidden"></div>
+</main>
+<!-- BottomNavBar (Mobile/Tablet Only) -->
+<nav class="fixed bottom-0 left-0 w-full z-50 flex justify-around items-center h-20 pb-safe px-4 bg-surface/80 dark:bg-surface/80 backdrop-blur-xl border-t border-surface-variant/10 lg:hidden">
+<a class="flex flex-col items-center justify-center text-primary-fixed-dim font-bold drop-shadow-[0_0_8px_rgba(160,216,0,0.4)] transition-transform duration-200 scale-110" href="#">
+<span class="material-symbols-outlined" style="font-variation-settings: 'FILL' 1;">home</span>
+<span class="font-label-md text-label-md">Explore</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-all p-2" href="#">
+<span class="material-symbols-outlined">search</span>
+<span class="font-label-md text-label-md">Search</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-all p-2" href="#">
+<span class="material-symbols-outlined">bookmarks</span>
+<span class="font-label-md text-label-md">My List</span>
+</a>
+<a class="flex flex-col items-center justify-center text-on-surface-variant hover:bg-surface-variant/30 rounded-xl transition-all p-2" href="#">
+<span class="material-symbols-outlined">person</span>
+<span class="font-label-md text-label-md">Profile</span>
+</a>
+</nav>
+<script>
+        // Simple micro-interaction for hero scroll effect
+        window.addEventListener('scroll', () => {
+            const scroll = window.pageYOffset;
+            const heroImage = document.querySelector('.hero-gradient').previousElementSibling;
+            if (heroImage) {
+                heroImage.style.transform = `translateY(${scroll * 0.4}px)`;
+            }
+        });
+
+        // Hover effect for genre chips
+        document.querySelectorAll('button').forEach(btn => {
+            btn.addEventListener('mouseenter', () => {
+                btn.style.transition = 'all 0.3s cubic-bezier(0.4, 0, 0.2, 1)';
+            });
+        });
+    </script>
+</body></html>
