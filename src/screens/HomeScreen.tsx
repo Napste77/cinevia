@@ -6,7 +6,7 @@ import {
   getByGenre,
 } from "../api/tmdb";
 import { TrendingItem } from "../types";
-import { DEFAULT_COUNTRY, STREAMING_PLATFORMS, GENRE_ROWS } from "../config/catalog";
+import { DEFAULT_COUNTRY, HOME_PLATFORM_ROWS, GENRE_ROWS } from "../config/catalog";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
 import Hero from "../components/Hero";
@@ -25,25 +25,24 @@ export default function HomeScreen({ navigation }: any) {
   const [trendingSeries, setTrendingSeries] = useState<TrendingItem[]>([]);
   const [platformRows, setPlatformRows] = useState<Record<string, TrendingItem[]>>({});
   const [genreRowsData, setGenreRowsData] = useState<Record<string, TrendingItem[]>>({});
-  const [loadingTrending, setLoadingTrending] = useState(true);
+  const [loadingMovies, setLoadingMovies] = useState(true);
+  const [loadingSeries, setLoadingSeries] = useState(true);
   const [loadingRows, setLoadingRows] = useState(true);
 
+  // Películas y series se piden por separado (no con Promise.all) para que
+  // el Hero pueda pintar apenas responde la primera, en vez de esperar
+  // siempre a la más lenta de las dos — mejora el LCP percibido.
   useEffect(() => {
     let cancelled = false;
     (async () => {
-      setLoadingTrending(true);
+      setLoadingMovies(true);
       try {
-        const [movies, series] = await Promise.all([
-          getTrendingByCountry(country, "movie"),
-          getTrendingByCountry(country, "tv"),
-        ]);
-        if (cancelled) return;
-        setTrendingMovies(movies);
-        setTrendingSeries(series);
+        const movies = await getTrendingByCountry(country, "movie");
+        if (!cancelled) setTrendingMovies(movies);
       } catch (e) {
-        console.error("Error cargando tendencias", e);
+        console.error("Error cargando tendencias de películas", e);
       } finally {
-        if (!cancelled) setLoadingTrending(false);
+        if (!cancelled) setLoadingMovies(false);
       }
     })();
     return () => {
@@ -54,11 +53,34 @@ export default function HomeScreen({ navigation }: any) {
   useEffect(() => {
     let cancelled = false;
     (async () => {
+      setLoadingSeries(true);
+      try {
+        const series = await getTrendingByCountry(country, "tv");
+        if (!cancelled) setTrendingSeries(series);
+      } catch (e) {
+        console.error("Error cargando tendencias de series", e);
+      } finally {
+        if (!cancelled) setLoadingSeries(false);
+      }
+    })();
+    return () => {
+      cancelled = true;
+    };
+  }, [country]);
+
+  // Las filas de plataforma/género (14 requests) se disparan recién
+  // cuando ya resolvió la de películas: así no compiten por las conexiones
+  // concurrentes del navegador con el contenido crítico de arriba (Hero +
+  // primera fila), que es lo que de verdad define el LCP percibido.
+  useEffect(() => {
+    if (loadingMovies) return;
+    let cancelled = false;
+    (async () => {
       setLoadingRows(true);
       try {
         const [platformResults, genreResults] = await Promise.all([
           Promise.allSettled(
-            STREAMING_PLATFORMS.map((p) => getByPlatform(country, p.providerId, "movie"))
+            HOME_PLATFORM_ROWS.map((p) => getByPlatform(country, p.providerId, "movie"))
           ),
           Promise.allSettled(
             GENRE_ROWS.map((g) => getByGenre(country, g.genreId, "movie"))
@@ -68,7 +90,7 @@ export default function HomeScreen({ navigation }: any) {
 
         const nextPlatformRows: Record<string, TrendingItem[]> = {};
         platformResults.forEach((result, i) => {
-          nextPlatformRows[STREAMING_PLATFORMS[i].key] =
+          nextPlatformRows[HOME_PLATFORM_ROWS[i].key] =
             result.status === "fulfilled" ? result.value : [];
         });
         setPlatformRows(nextPlatformRows);
@@ -86,7 +108,7 @@ export default function HomeScreen({ navigation }: any) {
     return () => {
       cancelled = true;
     };
-  }, [country]);
+  }, [country, loadingMovies]);
 
   const heroItem = useMemo(
     () => trendingMovies[0] || trendingSeries[0] || null,
@@ -108,13 +130,18 @@ export default function HomeScreen({ navigation }: any) {
       <ScrollView style={styles.scroll} showsVerticalScrollIndicator={false}>
         <TopBar title="Explorar" onSearchPress={() => goTo("Search")} />
 
-        {heroItem && (
+        {heroItem ? (
           <Hero
             item={heroItem}
             isFavorite={isFavorite(heroItem)}
             onToggleFavorite={() => toggleFavorite(heroItem)}
             onOpenDetail={() => openDetail(heroItem)}
           />
+        ) : (
+          // Reserva el mismo alto que ocupará el Hero real para que no haya
+          // un salto de layout enorme cuando termine de cargar (ver Row.tsx
+          // para la misma idea aplicada a las filas de abajo).
+          <View style={{ height: isDesktop ? 560 : 420, backgroundColor: colors.surfaceContainer }} />
         )}
 
         <View
@@ -126,17 +153,17 @@ export default function HomeScreen({ navigation }: any) {
           <Row
             title="Tendencias · Películas"
             items={trendingMovies}
-            loading={loadingTrending}
+            loading={loadingMovies}
             onItemPress={openDetail}
           />
           <Row
             title="Tendencias · Series"
             items={trendingSeries}
-            loading={loadingTrending}
+            loading={loadingSeries}
             onItemPress={openDetail}
           />
 
-          {STREAMING_PLATFORMS.map((platform) => (
+          {HOME_PLATFORM_ROWS.map((platform) => (
             <Row
               key={platform.key}
               title={platform.label}

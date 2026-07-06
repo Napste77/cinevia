@@ -1,5 +1,5 @@
 [build]
-  command = "npx expo export --platform web"
+  command = "npx expo export --platform web --source-maps"
   publish = "dist"
 
 [[redirects]]

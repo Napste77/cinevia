@@ -2,7 +2,7 @@ import { useCallback, useEffect, useState } from "react";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TrendingItem } from "../types";
 
-const STORAGE_KEY = "cinevia:favorites";
+const STORAGE_KEY = "nowsee:favorites";
 
 function keyOf(item: Pick<TrendingItem, "id" | "media_type">) {
   return `${item.media_type}-${item.id}`;

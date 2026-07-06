@@ -12,10 +12,11 @@ import {
   useWindowDimensions,
 } from "react-native";
 import { WebView } from "react-native-webview";
-import { MaterialIcons } from "@expo/vector-icons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { getDetail, backdropUrl, posterUrl, profileUrl } from "../api/tmdb";
-import { openProvider } from "../api/deepLinks";
+import { openStreamingLink } from "../api/deepLinks";
+import { resolveStreamingLink } from "../api/streamingLinks";
 import { DetailData } from "../types";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
@@ -211,7 +212,16 @@ export default function DetailScreen({ route, navigation }: any) {
               <ProviderBadge
                 key={p.provider_id}
                 provider={p}
-                onPress={() => openProvider(p.provider_name, data.title)}
+                onPress={() =>
+                  openStreamingLink(
+                    resolveStreamingLink({
+                      providerName: p.provider_name,
+                      mediaType: data.media_type,
+                      tmdbId: data.id,
+                      title: data.title,
+                    })
+                  )
+                }
               />
             ))}
           </View>

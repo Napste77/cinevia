@@ -1,5 +1,5 @@
 import React from "react";
-import { View } from "react-native";
+import { View, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
@@ -31,7 +31,12 @@ export default function App() {
     Inter_600SemiBold,
   });
 
-  if (!soraLoaded || !interLoaded) {
+  // En web no bloqueamos el render esperando las fuentes: el navegador ya
+  // muestra el texto con la fuente de sistema como fallback y hace el swap
+  // solo cuando el @font-face termina de cargar (evita pantalla en blanco
+  // + un salto de layout enorme, que es justamente lo que castiga Core
+  // Web Vitals). En nativo sí hace falta esperar: RN no tiene ese fallback.
+  if (Platform.OS !== "web" && (!soraLoaded || !interLoaded)) {
     return <View style={{ flex: 1, backgroundColor: colors.surface }} />;
   }
 

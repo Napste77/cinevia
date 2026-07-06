@@ -1,19 +1,17 @@
-import { GenreRow, StreamingPlatform } from "../types";
+import { GenreRow } from "../types";
+import { STREAMING_PLATFORMS } from "./streamingPlatforms";
 
 /**
- * IDs de provider de TMDB verificados contra /watch/providers/movie
- * (varían por región; estos corresponden a AR y suelen repetirse en
- * la mayoría de Latam).
+ * Filas de plataforma que arma el Home. Reusa la misma capa de
+ * abstracción de src/config/streamingPlatforms.ts (fuente única de
+ * verdad) — acá solo elegimos cuáles mostrar como fila y en qué orden.
+ * Hulu no se incluye porque no opera en la región por defecto (AR),
+ * pero sigue disponible para deep links si aparece en los providers
+ * de un título puntual.
  */
-export const STREAMING_PLATFORMS: StreamingPlatform[] = [
-  { key: "netflix", label: "Netflix", providerId: 8 },
-  { key: "disney", label: "Disney+", providerId: 337 },
-  { key: "prime", label: "Prime Video", providerId: 119 },
-  { key: "max", label: "Max", providerId: 1899 },
-  { key: "apple", label: "Apple TV+", providerId: 350 },
-  { key: "paramount", label: "Paramount+", providerId: 531 },
-  { key: "crunchyroll", label: "Crunchyroll", providerId: 283 },
-];
+export const HOME_PLATFORM_ROWS = STREAMING_PLATFORMS.filter((p) => p.key !== "hulu").map(
+  (p) => ({ key: p.key, label: p.label, providerId: p.providerId })
+);
 
 /** IDs de género de TMDB (movie). */
 export const GENRE_ROWS: GenreRow[] = [

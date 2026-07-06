@@ -10,6 +10,12 @@ import { TrendingItem } from "../types";
 import MediaCard from "./MediaCard";
 import { colors, fonts, spacing } from "../theme";
 
+// Alto fijo del área de contenido (poster 160x240 + título + metadata).
+// Reservarlo evita que la fila salte de tamaño cuando pasa de "cargando"
+// a "con contenido" — es la principal causa de Cumulative Layout Shift
+// en una pantalla que carga sus filas de a poco.
+const ROW_CONTENT_HEIGHT = 284;
+
 export default function Row({
   title,
   items,
@@ -30,23 +36,25 @@ export default function Row({
         <View style={styles.underline} />
       </View>
 
-      {loading ? (
-        <ActivityIndicator color={colors.primary} style={{ marginLeft: 4 }} />
-      ) : items.length === 0 ? (
-        <Text style={styles.empty}>{emptyLabel}</Text>
-      ) : (
-        <FlatList
-          data={items}
-          horizontal
-          showsHorizontalScrollIndicator={false}
-          keyExtractor={(item) => `${item.media_type}-${item.id}`}
-          contentContainerStyle={{ paddingRight: spacing.marginMobile }}
-          ItemSeparatorComponent={() => <View style={{ width: 14 }} />}
-          renderItem={({ item }) => (
-            <MediaCard item={item} onPress={() => onItemPress(item)} />
-          )}
-        />
-      )}
+      <View style={styles.content}>
+        {loading ? (
+          <ActivityIndicator color={colors.primary} style={{ marginLeft: 4 }} />
+        ) : items.length === 0 ? (
+          <Text style={styles.empty}>{emptyLabel}</Text>
+        ) : (
+          <FlatList
+            data={items}
+            horizontal
+            showsHorizontalScrollIndicator={false}
+            keyExtractor={(item) => `${item.media_type}-${item.id}`}
+            contentContainerStyle={{ paddingRight: spacing.marginMobile }}
+            ItemSeparatorComponent={() => <View style={{ width: 14 }} />}
+            renderItem={({ item }) => (
+              <MediaCard item={item} onPress={() => onItemPress(item)} />
+            )}
+          />
+        )}
+      </View>
     </View>
   );
 }
@@ -66,6 +74,7 @@ const styles = StyleSheet.create({
     borderRadius: 2,
     marginTop: 6,
   },
+  content: { height: ROW_CONTENT_HEIGHT, justifyContent: "flex-start" },
   empty: {
     color: colors.onSurfaceVariant,
     fontFamily: fonts.body,

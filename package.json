@@ -1,5 +1,5 @@
 {
-  "name": "cinevia",
+  "name": "nowsee",
   "version": "1.0.0",
   "main": "node_modules/expo/AppEntry.js",
   "scripts": {
@@ -17,10 +17,8 @@
     "@react-navigation/native-stack": "^6.9.26",
     "axios": "^1.7.2",
     "expo": "~51.0.0",
-    "expo-blur": "~13.0.3",
     "expo-font": "~12.0.10",
     "expo-linear-gradient": "~13.0.2",
-    "expo-location": "~17.0.1",
     "expo-status-bar": "~1.12.1",
     "react": "18.2.0",
     "react-dom": "18.2.0",

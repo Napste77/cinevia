@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, StyleSheet } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
 import TopBar from "../components/TopBar";
@@ -8,6 +8,7 @@ import { useFavorites } from "../hooks/useFavorites";
 import { DEFAULT_COUNTRY } from "../config/catalog";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
+import InstallAppButton from "../components/InstallAppButton";
 
 export default function ProfileScreen({ navigation }: any) {
   const { favorites } = useFavorites();
@@ -39,9 +40,12 @@ export default function ProfileScreen({ navigation }: any) {
             </View>
           </View>
 
-          <Text style={styles.sectionLabel}>Acerca de Cinevia</Text>
+          <Text style={styles.sectionLabel}>Instalar la app</Text>
+          <InstallAppButton />
+
+          <Text style={styles.sectionLabel}>Acerca de NowSee</Text>
           <Text style={styles.about}>
-            Cinevia te ayuda a descubrir qué ver: tendencias globales, catálogos
+            NowSee te ayuda a descubrir qué ver: tendencias globales, catálogos
             por plataforma y por género, todo actualizado con datos de TMDB.
             Esta es una versión MVP sin cuentas de usuario — tu lista se guarda
             solo en este dispositivo.

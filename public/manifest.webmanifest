@@ -1,0 +1,41 @@
+{
+  "id": "/",
+  "name": "NowSee — Descubrí qué ver",
+  "short_name": "NowSee",
+  "description": "Descubrí películas y series en tendencia y dónde verlas en tus plataformas de streaming.",
+  "start_url": "/?source=pwa",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "portrait-primary",
+  "background_color": "#0c1324",
+  "theme_color": "#0c1324",
+  "lang": "es",
+  "dir": "ltr",
+  "categories": ["entertainment", "movies"],
+  "icons": [
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "maskable"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/icons/icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
+  ]
+}

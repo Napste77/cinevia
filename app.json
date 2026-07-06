@@ -1,13 +1,16 @@
 {
   "expo": {
-    "name": "Cinevia",
-    "slug": "cinevia",
-    "scheme": "cinevia",
+    "name": "NowSee",
+    "slug": "nowsee",
+    "scheme": "nowsee",
     "version": "1.0.0",
     "orientation": "portrait",
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0c1324",
+    "icon": "./assets/icon.png",
     "splash": {
+      "image": "./assets/icon.png",
+      "resizeMode": "contain",
       "backgroundColor": "#0c1324"
     },
     "assetBundlePatterns": [
@@ -15,21 +18,23 @@
     ],
     "ios": {
       "supportsTablet": true,
-      "bundleIdentifier": "com.nastex.cinevia"
+      "bundleIdentifier": "com.nastex.nowsee"
     },
     "android": {
-      "package": "com.nastex.cinevia",
-      "permissions": [
-        "ACCESS_COARSE_LOCATION"
-      ]
+      "package": "com.nastex.nowsee",
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/icon.png",
+        "backgroundColor": "#0c1324"
+      }
     },
     "web": {
       "bundler": "metro",
       "backgroundColor": "#0c1324",
-      "name": "Cinevia — Descubrí qué ver",
-      "shortName": "Cinevia",
+      "favicon": "./assets/icon.png",
+      "name": "NowSee — Descubrí qué ver",
+      "shortName": "NowSee",
       "themeColor": "#0c1324",
-      "description": "Cinevia: descubrí películas y series en tendencia y dónde verlas en tus plataformas de streaming."
+      "description": "NowSee: descubrí películas y series en tendencia y dónde verlas en tus plataformas de streaming."
     },
     "plugins": [
       "expo-font"

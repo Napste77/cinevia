@@ -32,9 +32,12 @@ export function posterUrl(
   return `${IMG_BASE}/${size}${path}`;
 }
 
-export function backdropUrl(path: string | null) {
+export function backdropUrl(
+  path: string | null,
+  size: "w780" | "w1280" = "w1280"
+) {
   if (!path) return null;
-  return `${IMG_BASE}/w1280${path}`;
+  return `${IMG_BASE}/${size}${path}`;
 }
 
 export function profileUrl(path: string | null) {

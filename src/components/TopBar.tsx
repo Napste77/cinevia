@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { colors, fonts, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 
@@ -23,7 +23,7 @@ export default function TopBar({
       {isDesktop ? (
         <Text style={styles.title}>{title}</Text>
       ) : (
-        <Text style={styles.brand}>Cinevia</Text>
+        <Text style={styles.brand}>NowSee</Text>
       )}
       <Pressable style={styles.searchButton} onPress={onSearchPress}>
         <MaterialIcons name="search" size={20} color={colors.onSurfaceVariant} />

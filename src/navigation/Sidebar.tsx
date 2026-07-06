@@ -1,6 +1,6 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
-import { MaterialIcons } from "@expo/vector-icons";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { NAV_ITEMS, RouteKey } from "./NavItems";
 import { colors, fonts, radii } from "../theme";
 
@@ -13,7 +13,7 @@ export default function Sidebar({
 }) {
   return (
     <View style={styles.sidebar}>
-      <Text style={styles.brand}>Cinevia</Text>
+      <Text style={styles.brand}>NowSee</Text>
       <View style={styles.nav}>
         {NAV_ITEMS.map((item) => {
           const isActive = item.key === active;

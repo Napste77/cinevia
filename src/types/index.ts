@@ -60,13 +60,6 @@ export interface DetailData {
   recommendations: TrendingItem[];
 }
 
-/** Filas de plataforma que arma el Home. */
-export interface StreamingPlatform {
-  key: string;
-  label: string;
-  providerId: number;
-}
-
 /** Filas de género que arma el Home (usa IDs de género de TMDB para movie). */
 export interface GenreRow {
   key: string;
