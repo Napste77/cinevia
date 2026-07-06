@@ -17,6 +17,7 @@ import { LinearGradient } from "expo-linear-gradient";
 import { getDetail, backdropUrl, posterUrl, profileUrl } from "../api/tmdb";
 import { openStreamingLink } from "../api/deepLinks";
 import { resolveStreamingLink } from "../api/streamingLinks";
+import { getResolvedLiveLinks } from "../api/resolvedStreamingLinks";
 import { DetailData } from "../types";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
@@ -35,6 +36,7 @@ export default function DetailScreen({ route, navigation }: any) {
   const [data, setData] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+  const [liveLinks, setLiveLinks] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -51,6 +53,22 @@ export default function DetailScreen({ route, navigation }: any) {
         if (!cancelled) setLoading(false);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
+  }, [id, mediaType, country]);
+
+  // Independiente de getDetail: resuelve los deep links exactos por
+  // plataforma (Wikidata, gratis, + Streaming Availability API opcional).
+  // Si ninguna tiene datos, liveLinks queda vacío y resolveStreamingLink
+  // cae a overrides/búsqueda igual.
+  useEffect(() => {
+    let cancelled = false;
+    getResolvedLiveLinks(id, mediaType, country)
+      .then((links) => {
+        if (!cancelled) setLiveLinks(links);
+      })
+      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -219,6 +237,7 @@ export default function DetailScreen({ route, navigation }: any) {
                       mediaType: data.media_type,
                       tmdbId: data.id,
                       title: data.title,
+                      liveLinks,
                     })
                   )
                 }

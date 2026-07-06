@@ -15,7 +15,16 @@ npm install
 #    - Conseguila gratis en https://www.themoviedb.org/settings/api
 #    - Copiá .env.example a .env y completá EXPO_PUBLIC_TMDB_API_KEY
 
-# 3. Correr en modo web
+# 3. No hace falta nada más para los deep links: Wikidata (la fuente
+#    principal) es pública y no usa API key.
+
+# 4. (opcional) API key de Streaming Availability, para cubrir además
+#    Prime Video/Max/Paramount+/Hulu/Crunchyroll (Wikidata no los tiene):
+#    - Suscribite gratis (sin tarjeta) en:
+#      https://rapidapi.com/movie-of-the-night-movie-of-the-night-default/api/streaming-availability
+#    - Copiá el valor de "X-RapidAPI-Key" a EXPO_PUBLIC_STREAMING_AVAILABILITY_API_KEY
+
+# 5. Correr en modo web
 npx expo start --web
 ```
 
@@ -38,10 +47,11 @@ npx netlify init      # o `netlify link` si ya existe el site
 npx netlify deploy --prod
 ```
 
-Variable de entorno a configurar en Netlify (Site settings → Environment
-variables), la misma que en tu `.env` local:
+Variables de entorno a configurar en Netlify (Site settings → Environment
+variables), las mismas que en tu `.env` local:
 
 - `EXPO_PUBLIC_TMDB_API_KEY`
+- `EXPO_PUBLIC_STREAMING_AVAILABILITY_API_KEY`
 
 ## Qué incluye
 
@@ -79,29 +89,55 @@ variables), la misma que en tu `.env` local:
 
 ## Deep links a plataformas de streaming
 
-Arquitectura en tres piezas, para que el resto de la app no conozca ningún
-detalle de cada plataforma:
+Arquitectura en capas, para que el resto de la app no conozca ningún detalle
+de cada plataforma:
 
 - `src/config/streamingPlatforms.ts`: la capa de abstracción (nombre, color,
   provider id de TMDB, plantilla de universal link, búsqueda de fallback).
+- `src/api/wikidataStreamingIds.ts`: **fuente principal, 100% gratis y sin
+  límite.** [Wikidata](https://www.wikidata.org) es dato abierto (CC0) y
+  mantiene propiedades con el ID real de cada título en Netflix (P1874),
+  Disney+ (P7595/P7596) y Apple TV (P9586/P9751), cruzables por el ID de
+  TMDB (P4947/P4983). Sin API key, sin cuota, sin costo — a diferencia de
+  cualquier "free tier" comercial, esto no tiene techo que se vaya a topar
+  si NowSee crece. Cachea 90 días (memoria + AsyncStorage). Cobertura real
+  pero parcial (depende de qué haya documentado la comunidad, y todavía no
+  cubre Prime Video/Max/Paramount+/Hulu/Crunchyroll).
+- `src/api/streamingAvailability.ts`: cliente opcional de la
+  [Streaming Availability API](https://www.movieofthenight.com/about/api)
+  (vía RapidAPI, free tier 100 req/día) — rellena las plataformas que
+  Wikidata no cubre. Requiere `EXPO_PUBLIC_STREAMING_AVAILABILITY_API_KEY`;
+  sin ella la app funciona igual, solo con menos cobertura en esas
+  plataformas puntuales. Es una mejora incremental para cuando el
+  producto genere ingresos, no una dependencia obligatoria.
 - `src/data/streamingLinkOverrides.ts`: mapeo manual `tmdbId -> URL real`
-  para títulos puntuales, sin tocar componentes ni pantallas. Pensado para
-  escalar: el día que haga falta, `getStreamingLinkOverrides()` puede pasar
-  a leer de una fuente remota (hoja de cálculo publicada, CMS, backend) y
-  nada más en la app cambia.
-- `src/api/streamingLinks.ts`: el resolver — usa el override si existe, si
-  no cae a la búsqueda dentro de la plataforma.
+  para casos puntuales que ninguna de las dos fuentes anteriores resuelva.
+  Pensado para escalar: el día que haga falta, puede pasar a leer de una
+  fuente remota (hoja de cálculo publicada, CMS, backend) sin tocar el
+  resto de la app.
+- `src/api/streamingLinks.ts`: el resolver, en este orden de prioridad:
+  1. Wikidata (gratis).
+  2. Streaming Availability API (si está configurada).
+  3. Override manual.
+  4. Último recurso: búsqueda del título dentro de la plataforma.
+
+**Validado con casos reales** (Argentina): "Atrapados" → Netflix
+`netflix.com/title/81580367` (el ID exacto), "Stranger Things" → Netflix
+`netflix.com/title/80057281`, "Breaking Bad" → Netflix
+`netflix.com/title/70143836` — los tres resueltos 100% gratis vía
+Wikidata, sin ninguna API paga. "Oppenheimer" cayó al fallback de
+búsqueda porque Wikidata tiene documentado su ID de Apple TV pero
+todavía no el de Netflix para ese título puntual — es un hueco de
+cobertura de los datos (comunitarios, van creciendo con el tiempo), no
+un bug del código.
 
 El resultado siempre es una URL https normal (nunca un scheme custom tipo
 `nflx://`). En un dispositivo con la app instalada, el sistema operativo
 intercepta esa URL vía Universal Links (iOS) / App Links (Android) y abre
-la app directo — el mismo mecanismo que usa un link compartido oficialmente
-desde la propia plataforma. Si no está instalada, carga la web tal cual. No
-hace falta ninguna lógica de "detectar instalación + fallback": lo maneja el
-SO. Validado en la práctica: al no haber override cargado para un título,
-cae a la búsqueda (`netflix.com/search?q=...`) y Netflix responde con un
-redirect real a esa búsqueda, confirmando que la URL es válida para su
-propio backend.
+la app directo en la ficha exacta — el mismo mecanismo que usa un link
+compartido oficialmente desde la propia plataforma. Si no está instalada,
+carga la web tal cual. No hace falta ninguna lógica de "detectar
+instalación + fallback": lo maneja el SO.
 
 **Sobre el link "compartido oficial"**: los links que genera el botón
 Compartir de cada plataforma (ej. el de Netflix con `shareUuid`, `trkid`,
@@ -122,11 +158,15 @@ Axios contra la API de TMDB. Deploy como sitio estático PWA en Netlify.
    terceros arranque la reproducción de un título directamente — como
    máximo abren la app en la ficha (o en el buscador si no hay un ID
    nativo cargado). Es una limitación de las plataformas, no del código.
-2. **Deep links con ID nativo real**: solo funcionan para los títulos
-   cargados en `streamingLinkOverrides.ts` (no existe ninguna API pública
-   que devuelva el ID interno de Netflix/Disney+/etc. a partir del ID de
-   TMDB). El resto cae a la búsqueda dentro de la plataforma, que también
-   abre la app si está instalada.
+2. **Deep links exactos dependen de que Wikidata (o, si está configurada,
+   la Streaming Availability API) tenga documentado ese título en esa
+   plataforma puntual.** Es cobertura real pero no 100% para absolutamente
+   todo el catálogo — cuando falta, cae a `streamingLinkOverrides.ts` y
+   por último a la búsqueda dentro de la plataforma (que igual abre la
+   app si está instalada, solo que sin apuntar directo a la ficha). La
+   cobertura de Wikidata la mantiene su comunidad y crece con el tiempo;
+   para títulos puntuales de alto tráfico conviene cargar un override
+   manual verificado.
 3. **País por defecto AR.** Para producción conviene sumar geo-IP o un
    selector manual de país/región.
 4. **Datos de providers vienen de TMDB/JustWatch.** Es gratis pero puede
@@ -136,8 +176,11 @@ Axios contra la API de TMDB. Deploy como sitio estático PWA en Netlify.
 
 ## Próximos pasos sugeridos
 
-- Cargar overrides de deep links para el catálogo más popular (o mudar
-  `streamingLinkOverrides` a una fuente remota editable sin deploy).
+- Cargar overrides manuales verificados para el catálogo de mayor
+  tráfico (los títulos que Wikidata todavía no documenta).
+- Si más adelante conviene sumar la Streaming Availability API (u otra
+  paga) para más cobertura, mover el cache a compartido entre usuarios
+  (hoy es por dispositivo) estira mucho más cualquier free tier.
 - Selector de país manual + geo-IP automático.
 - Backend propio con cache (para no pegarle a TMDB en cada request).
 - Cuentas de usuario y sincronización de favoritos.
