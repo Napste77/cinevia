@@ -1,14 +1,17 @@
 import React, { useState } from "react";
-import { View, Text, Image, Pressable, StyleSheet } from "react-native";
+import { View, Text, Image, Pressable, StyleSheet, Platform } from "react-native";
 import { Provider } from "../types";
 import { colors, radii, fonts } from "../theme";
 import { getPlatformByName } from "../config/streamingPlatforms";
 
 export default function ProviderBadge({
   provider,
+  url,
   onPress,
 }: {
   provider: Provider;
+  /** URL resuelta a donde debe llevar el botón (web: se renderiza como <a href>). */
+  url: string;
   onPress?: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
@@ -17,7 +20,14 @@ export default function ProviderBadge({
 
   return (
     <Pressable
-      onPress={onPress}
+      // En web renderizamos un <a href> real: es la forma más confiable de
+      // navegar en cualquier navegador/dispositivo (un click programático
+      // vía JS puede quedar bloqueado en algunos Chrome/Safari mobile,
+      // sobre todo dentro de una PWA instalada). En nativo seguimos
+      // usando onPress + Linking.openURL (ver DetailScreen).
+      {...(Platform.OS === "web"
+        ? { href: url, hrefAttrs: { rel: "noopener noreferrer" } }
+        : { onPress })}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       style={[styles.wrap, hovered && { borderColor: accentColor }]}

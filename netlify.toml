@@ -6,3 +6,16 @@
   from = "/*"
   to = "/index.html"
   status = 200
+
+[[headers]]
+  for = "/manifest.webmanifest"
+  [headers.values]
+    Content-Type = "application/manifest+json"
+
+[[headers]]
+  for = "/sw.js"
+  [headers.values]
+    # El service worker nunca debe quedar cacheado por el CDN/navegador:
+    # si no, un deploy nuevo puede tardar en propagarse a usuarios que ya
+    # instalaron una versión vieja.
+    Cache-Control = "no-cache"

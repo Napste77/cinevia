@@ -226,23 +226,23 @@ export default function DetailScreen({ route, navigation }: any) {
           </Text>
         ) : (
           <View style={styles.providersRow}>
-            {allProviders.map((p) => (
-              <ProviderBadge
-                key={p.provider_id}
-                provider={p}
-                onPress={() =>
-                  openStreamingLink(
-                    resolveStreamingLink({
-                      providerName: p.provider_name,
-                      mediaType: data.media_type,
-                      tmdbId: data.id,
-                      title: data.title,
-                      liveLinks,
-                    })
-                  )
-                }
-              />
-            ))}
+            {allProviders.map((p) => {
+              const resolvedUrl = resolveStreamingLink({
+                providerName: p.provider_name,
+                mediaType: data.media_type,
+                tmdbId: data.id,
+                title: data.title,
+                liveLinks,
+              });
+              return (
+                <ProviderBadge
+                  key={p.provider_id}
+                  provider={p}
+                  url={resolvedUrl}
+                  onPress={() => openStreamingLink(resolvedUrl)}
+                />
+              );
+            })}
           </View>
         )}
 
