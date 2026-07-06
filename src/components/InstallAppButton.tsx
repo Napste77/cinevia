@@ -5,7 +5,7 @@ import { useInstallPrompt } from "../hooks/useInstallPrompt";
 import { colors, fonts, radii } from "../theme";
 
 export default function InstallAppButton() {
-  const { canInstall, isIos, installed, promptInstall } = useInstallPrompt();
+  const { canInstall, isIos, installed, promptInstall, showManualFallback } = useInstallPrompt();
 
   if (Platform.OS !== "web") return null;
 
@@ -34,6 +34,19 @@ export default function InstallAppButton() {
         <Text style={styles.hintText}>
           Tocá el botón Compartir <Text style={styles.bold}>􀈂</Text> en Safari y elegí
           "Agregar a pantalla de inicio".
+        </Text>
+      </View>
+    );
+  }
+
+  if (showManualFallback) {
+    return (
+      <View style={styles.hintBox}>
+        <Text style={styles.hintTitle}>Instalar manualmente</Text>
+        <Text style={styles.hintText}>
+          Tu navegador no ofreció el instalador automático. Abrí el menú{" "}
+          <Text style={styles.bold}>⋮</Text> (arriba a la derecha) y elegí "Instalar aplicación"
+          o "Añadir a pantalla de inicio".
         </Text>
       </View>
     );
