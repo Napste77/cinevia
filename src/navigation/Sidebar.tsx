@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { NAV_ITEMS, RouteKey } from "./NavItems";
 import { colors, fonts, radii } from "../theme";
+import BrandLogo from "../components/BrandLogo";
 
 export default function Sidebar({
   active,
@@ -13,7 +14,7 @@ export default function Sidebar({
 }) {
   return (
     <View style={styles.sidebar}>
-      <Text style={styles.brand}>NowSee</Text>
+      <BrandLogo style={styles.brand} />
       <View style={styles.nav}>
         {NAV_ITEMS.map((item) => {
           const isActive = item.key === active;

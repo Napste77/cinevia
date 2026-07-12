@@ -3,6 +3,7 @@ import { View, Text, Pressable, StyleSheet } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { colors, fonts, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
+import BrandLogo from "./BrandLogo";
 
 export default function TopBar({
   onSearchPress,
@@ -23,7 +24,7 @@ export default function TopBar({
       {isDesktop ? (
         <Text style={styles.title}>{title}</Text>
       ) : (
-        <Text style={styles.brand}>NowSee</Text>
+        <BrandLogo style={styles.brand} />
       )}
       <Pressable style={styles.searchButton} onPress={onSearchPress}>
         <MaterialIcons name="search" size={20} color={colors.onSurfaceVariant} />

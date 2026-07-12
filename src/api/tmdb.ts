@@ -6,6 +6,7 @@ import {
   ProvidersByCountry,
   MediaType,
   CastMember,
+  CategorySource,
 } from "../types";
 
 const API_KEY =
@@ -59,6 +60,37 @@ function mapItem(item: any, mediaType: MediaType): TrendingItem {
 }
 
 /**
+ * Fetch paginado genérico contra /discover, usado tanto por las filas del
+ * Home (siempre page 1) como por la página de catálogo completo de una
+ * categoría (/category/:slug, con scroll infinito).
+ */
+export async function getCategoryPage(
+  countryCode: string,
+  source: CategorySource,
+  page = 1
+): Promise<{ items: TrendingItem[]; totalPages: number }> {
+  const params: Record<string, string | number> = {
+    watch_region: countryCode,
+    with_watch_monetization_types: "flatrate",
+    sort_by: "popularity.desc",
+    page,
+  };
+  if (source.type === "platform" && source.providerId) {
+    params.with_watch_providers = source.providerId;
+  }
+  if (source.type === "genre" && source.genreId) {
+    params.with_genres = source.genreId;
+  }
+
+  const res = await client.get(`/discover/${source.mediaType}`, { params });
+
+  return {
+    items: res.data.results.map((item: any) => mapItem(item, source.mediaType)),
+    totalPages: res.data.total_pages || 1,
+  };
+}
+
+/**
  * Trending por región. TMDB no filtra /trending por país directamente,
  * así que usamos /discover con watch_region para acercarnos a
  * "lo que es tendencia y se puede ver en ese país".
@@ -67,16 +99,8 @@ export async function getTrendingByCountry(
   countryCode: string,
   mediaType: MediaType = "movie"
 ): Promise<TrendingItem[]> {
-  const res = await client.get(`/discover/${mediaType}`, {
-    params: {
-      watch_region: countryCode,
-      with_watch_monetization_types: "flatrate",
-      sort_by: "popularity.desc",
-      page: 1,
-    },
-  });
-
-  return res.data.results.map((item: any) => mapItem(item, mediaType));
+  const { items } = await getCategoryPage(countryCode, { type: "trending", mediaType }, 1);
+  return items;
 }
 
 /** Catálogo de una plataforma de streaming puntual (Netflix, Disney+, etc). */
@@ -85,17 +109,12 @@ export async function getByPlatform(
   providerId: number,
   mediaType: MediaType = "movie"
 ): Promise<TrendingItem[]> {
-  const res = await client.get(`/discover/${mediaType}`, {
-    params: {
-      watch_region: countryCode,
-      with_watch_providers: providerId,
-      with_watch_monetization_types: "flatrate",
-      sort_by: "popularity.desc",
-      page: 1,
-    },
-  });
-
-  return res.data.results.map((item: any) => mapItem(item, mediaType));
+  const { items } = await getCategoryPage(
+    countryCode,
+    { type: "platform", mediaType, providerId },
+    1
+  );
+  return items;
 }
 
 /** Catálogo por género, disponible por suscripción en el país dado. */
@@ -104,17 +123,8 @@ export async function getByGenre(
   genreId: number,
   mediaType: MediaType = "movie"
 ): Promise<TrendingItem[]> {
-  const res = await client.get(`/discover/${mediaType}`, {
-    params: {
-      watch_region: countryCode,
-      with_genres: genreId,
-      with_watch_monetization_types: "flatrate",
-      sort_by: "popularity.desc",
-      page: 1,
-    },
-  });
-
-  return res.data.results.map((item: any) => mapItem(item, mediaType));
+  const { items } = await getCategoryPage(countryCode, { type: "genre", mediaType, genreId }, 1);
+  return items;
 }
 
 export async function searchTitles(query: string): Promise<TrendingItem[]> {

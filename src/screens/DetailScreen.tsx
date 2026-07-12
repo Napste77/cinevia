@@ -27,9 +27,10 @@ import ProviderBadge from "../components/ProviderBadge";
 import MediaCard from "../components/MediaCard";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
+import { DEFAULT_COUNTRY } from "../config/catalog";
 
 export default function DetailScreen({ route, navigation }: any) {
-  const { id, mediaType, country } = route.params;
+  const { id, mediaType, country = DEFAULT_COUNTRY } = route.params;
   const { width } = useWindowDimensions();
   const { isDesktop } = useResponsive();
   const { isFavorite, toggleFavorite } = useFavorites();
