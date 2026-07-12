@@ -66,3 +66,18 @@ export interface GenreRow {
   label: string;
   genreId: number;
 }
+
+/** De dónde sale el catálogo de una categoría (fuente para /discover). */
+export interface CategorySource {
+  type: "trending" | "platform" | "genre";
+  mediaType: MediaType;
+  providerId?: number;
+  genreId?: number;
+}
+
+/** Categoría navegable con su propia página de catálogo completo (/category/:slug). */
+export interface CategoryDef {
+  slug: string;
+  label: string;
+  source: CategorySource;
+}

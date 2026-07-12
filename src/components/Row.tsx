@@ -2,10 +2,12 @@ import React from "react";
 import {
   View,
   Text,
+  Pressable,
   FlatList,
   StyleSheet,
   ActivityIndicator,
 } from "react-native";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { TrendingItem } from "../types";
 import MediaCard from "./MediaCard";
 import { colors, fonts, spacing } from "../theme";
@@ -21,18 +23,28 @@ export default function Row({
   items,
   loading,
   onItemPress,
+  onSeeAllPress,
   emptyLabel = "No encontramos contenido para esta sección todavía.",
 }: {
   title: string;
   items: TrendingItem[];
   loading?: boolean;
   onItemPress: (item: TrendingItem) => void;
+  onSeeAllPress?: () => void;
   emptyLabel?: string;
 }) {
   return (
     <View style={styles.section}>
       <View style={styles.header}>
-        <Text style={styles.title}>{title}</Text>
+        <View style={styles.headerTop}>
+          <Text style={styles.title}>{title}</Text>
+          {onSeeAllPress && (
+            <Pressable style={styles.seeAll} onPress={onSeeAllPress} hitSlop={8}>
+              <Text style={styles.seeAllText}>Ver más</Text>
+              <MaterialIcons name="chevron-right" size={16} color={colors.primary} />
+            </Pressable>
+          )}
+        </View>
         <View style={styles.underline} />
       </View>
 
@@ -62,10 +74,21 @@ export default function Row({
 const styles = StyleSheet.create({
   section: { marginTop: 32 },
   header: { marginBottom: 14 },
+  headerTop: {
+    flexDirection: "row",
+    alignItems: "center",
+    justifyContent: "space-between",
+  },
   title: {
     color: colors.onSurface,
     fontFamily: fonts.headline,
     fontSize: 20,
+  },
+  seeAll: { flexDirection: "row", alignItems: "center", gap: 2 },
+  seeAllText: {
+    color: colors.primary,
+    fontFamily: fonts.label,
+    fontSize: 13,
   },
   underline: {
     height: 3,

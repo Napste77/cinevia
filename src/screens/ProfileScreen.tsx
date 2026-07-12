@@ -9,6 +9,7 @@ import { DEFAULT_COUNTRY } from "../config/catalog";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 import InstallAppButton from "../components/InstallAppButton";
+import BrandLogo from "../components/BrandLogo";
 
 export default function ProfileScreen({ navigation }: any) {
   const { favorites } = useFavorites();
@@ -43,7 +44,9 @@ export default function ProfileScreen({ navigation }: any) {
           <Text style={styles.sectionLabel}>Instalar la app</Text>
           <InstallAppButton />
 
-          <Text style={styles.sectionLabel}>Acerca de NowSee</Text>
+          <Text style={styles.sectionLabel}>
+            Acerca de <BrandLogo />
+          </Text>
           <Text style={styles.about}>
             NowSee te ayuda a descubrir qué ver: tendencias globales, catálogos
             por plataforma y por género, todo actualizado con datos de TMDB.

@@ -3,7 +3,10 @@
   <head>
     <meta charset="utf-8" />
     <meta httpEquiv="X-UA-Compatible" content="IE=edge" />
-    <meta name="viewport" content="width=device-width, initial-scale=1, shrink-to-fit=no, viewport-fit=cover" />
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1, maximum-scale=1, minimum-scale=1, user-scalable=no, shrink-to-fit=no, viewport-fit=cover"
+    />
     <title>%WEB_TITLE%</title>
 
     <!-- PWA: manifest -->
@@ -38,6 +41,22 @@
         display: flex;
         height: 100%;
         flex: 1;
+      }
+
+      /*
+       * Experiencia tipo app nativa: sin pinch-to-zoom, sin double-tap
+       * zoom, sin el "rebote" (rubber-banding) ni el desplazamiento
+       * lateral de toda la página que producen los gestos con varios
+       * dedos. `touch-action: manipulation` es la vía estándar (no hacks
+       * de JS) para desactivar pinch/double-tap-zoom mientras se sigue
+       * permitiendo el scroll normal de cada contenedor (vertical en la
+       * página, horizontal en los carruseles con su propio overflow).
+       */
+      html,
+      body {
+        touch-action: manipulation;
+        overscroll-behavior: none;
+        -webkit-text-size-adjust: 100%;
       }
     </style>
   </head>

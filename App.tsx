@@ -1,7 +1,7 @@
 import React from "react";
 import { View, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { NavigationContainer } from "@react-navigation/native";
+import { NavigationContainer, LinkingOptions } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   useFonts as useSora,
@@ -19,9 +19,34 @@ import SearchScreen from "./src/screens/SearchScreen";
 import DetailScreen from "./src/screens/DetailScreen";
 import MyListScreen from "./src/screens/MyListScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
+import CategoryScreen from "./src/screens/CategoryScreen";
 import { colors } from "./src/theme";
 
 const Stack = createNativeStackNavigator();
+
+// Sincroniza la pila de navegación con la URL y la History API del
+// navegador: sin esto, en web react-navigation nunca hace pushState, así
+// que no hay historial interno que recorrer y el botón "Atrás" del
+// navegador/dispositivo sale directo del sitio en la primera pantalla.
+// Con `linking`, cada navegación empuja una entrada de historial y el
+// gesto/botón "Atrás" dispara un GO_BACK dentro de la app en vez de salir,
+// mientras quede historial interno.
+const linking: LinkingOptions<any> = {
+  prefixes: ["nowsee://"],
+  config: {
+    screens: {
+      Home: "",
+      Search: "search",
+      MyList: "my-list",
+      Profile: "profile",
+      Category: "category/:slug",
+      Detail: {
+        path: "title/:mediaType/:id",
+        parse: { id: (id: string) => Number(id) },
+      },
+    },
+  },
+};
 
 export default function App() {
   const [soraLoaded] = useSora({ Sora_600SemiBold, Sora_700Bold });
@@ -41,7 +66,7 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer>
+    <NavigationContainer linking={linking}>
       <StatusBar style="light" />
       <Stack.Navigator screenOptions={{ headerShown: false }}>
         <Stack.Screen name="Home" component={HomeScreen} />
@@ -49,6 +74,7 @@ export default function App() {
         <Stack.Screen name="Detail" component={DetailScreen} />
         <Stack.Screen name="MyList" component={MyListScreen} />
         <Stack.Screen name="Profile" component={ProfileScreen} />
+        <Stack.Screen name="Category" component={CategoryScreen} />
       </Stack.Navigator>
     </NavigationContainer>
   );

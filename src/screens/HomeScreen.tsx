@@ -124,6 +124,7 @@ export default function HomeScreen({ navigation }: any) {
   };
 
   const goTo = (key: RouteKey) => navigation.navigate(key);
+  const openCategory = (slug: string) => navigation.navigate("Category", { slug });
 
   return (
     <AppShell active="Home" onNavigate={goTo}>
@@ -155,12 +156,14 @@ export default function HomeScreen({ navigation }: any) {
             items={trendingMovies}
             loading={loadingMovies}
             onItemPress={openDetail}
+            onSeeAllPress={() => openCategory("trending-movies")}
           />
           <Row
             title="Tendencias · Series"
             items={trendingSeries}
             loading={loadingSeries}
             onItemPress={openDetail}
+            onSeeAllPress={() => openCategory("trending-series")}
           />
 
           {HOME_PLATFORM_ROWS.map((platform) => (
@@ -170,6 +173,7 @@ export default function HomeScreen({ navigation }: any) {
               items={platformRows[platform.key] || []}
               loading={loadingRows}
               onItemPress={openDetail}
+              onSeeAllPress={() => openCategory(platform.key)}
               emptyLabel={`No encontramos catálogo de ${platform.label} disponible por suscripción en tu región.`}
             />
           ))}
@@ -181,6 +185,7 @@ export default function HomeScreen({ navigation }: any) {
               items={genreRowsData[genre.key] || []}
               loading={loadingRows}
               onItemPress={openDetail}
+              onSeeAllPress={() => openCategory(genre.key)}
             />
           ))}
         </View>
