@@ -7,7 +7,6 @@ import {
   StyleSheet,
 } from "react-native";
 import { TrendingItem } from "../types";
-import { posterUrl } from "../api/tmdb";
 import { colors, radii, fonts } from "../theme";
 import RatingBadge from "./RatingBadge";
 
@@ -23,7 +22,7 @@ export default function MediaCard({
   width?: number;
 }) {
   const [hovered, setHovered] = useState(false);
-  const uri = posterUrl(item.poster_path);
+  const uri = item.poster_path;
   const year = item.release_date ? item.release_date.slice(0, 4) : null;
 
   return (

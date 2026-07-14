@@ -1,7 +1,7 @@
 import React, { useCallback, useEffect, useState } from "react";
 import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { getCategoryPage } from "../api/tmdb";
+import { getCategoryPage } from "../api/nowsee";
 import { DEFAULT_COUNTRY, getCategoryBySlug } from "../config/catalog";
 import { TrendingItem } from "../types";
 import AppShell from "../navigation/AppShell";

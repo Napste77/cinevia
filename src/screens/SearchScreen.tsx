@@ -1,6 +1,6 @@
 import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet, ActivityIndicator } from "react-native";
-import { searchTitles } from "../api/tmdb";
+import { searchTitles } from "../api/nowsee";
 import { TrendingItem } from "../types";
 import { DEFAULT_COUNTRY } from "../config/catalog";
 import AppShell from "../navigation/AppShell";

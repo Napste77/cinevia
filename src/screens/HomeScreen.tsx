@@ -4,7 +4,7 @@ import {
   getTrendingByCountry,
   getByPlatform,
   getByGenre,
-} from "../api/tmdb";
+} from "../api/nowsee";
 import { TrendingItem } from "../types";
 import { DEFAULT_COUNTRY, HOME_PLATFORM_ROWS, GENRE_ROWS } from "../config/catalog";
 import AppShell from "../navigation/AppShell";

@@ -14,10 +14,8 @@ import {
 import { WebView } from "react-native-webview";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
-import { getDetail, backdropUrl, posterUrl, profileUrl } from "../api/tmdb";
+import { getDetail } from "../api/nowsee";
 import { openStreamingLink } from "../api/deepLinks";
-import { resolveStreamingLink } from "../api/streamingLinks";
-import { getResolvedLiveLinks } from "../api/resolvedStreamingLinks";
 import { DetailData } from "../types";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
@@ -37,7 +35,6 @@ export default function DetailScreen({ route, navigation }: any) {
   const [data, setData] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
-  const [liveLinks, setLiveLinks] = useState<Record<string, string>>({});
 
   useEffect(() => {
     let cancelled = false;
@@ -54,22 +51,6 @@ export default function DetailScreen({ route, navigation }: any) {
         if (!cancelled) setLoading(false);
       }
     })();
-    return () => {
-      cancelled = true;
-    };
-  }, [id, mediaType, country]);
-
-  // Independiente de getDetail: resuelve los deep links exactos por
-  // plataforma (Wikidata, gratis, + Streaming Availability API opcional).
-  // Si ninguna tiene datos, liveLinks queda vacío y resolveStreamingLink
-  // cae a overrides/búsqueda igual.
-  useEffect(() => {
-    let cancelled = false;
-    getResolvedLiveLinks(id, mediaType, country)
-      .then((links) => {
-        if (!cancelled) setLiveLinks(links);
-      })
-      .catch(() => {});
     return () => {
       cancelled = true;
     };
@@ -95,18 +76,14 @@ export default function DetailScreen({ route, navigation }: any) {
     );
   }
 
-  const allProviders = data.providers?.flatrate || [];
   const fav = isFavorite({ id: data.id, media_type: data.media_type });
 
   return (
     <AppShell active={null} onNavigate={goTo}>
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={[styles.backdropWrap, { height: isDesktop ? 460 : width * 0.65 }]}>
-        {backdropUrl(data.backdrop_path) && (
-          <Image
-            source={{ uri: backdropUrl(data.backdrop_path)! }}
-            style={StyleSheet.absoluteFillObject}
-          />
+        {data.backdrop_path && (
+          <Image source={{ uri: data.backdrop_path }} style={StyleSheet.absoluteFillObject} />
         )}
         <LinearGradient
           colors={["transparent", colors.surface]}
@@ -119,11 +96,8 @@ export default function DetailScreen({ route, navigation }: any) {
 
       <View style={[styles.body, { paddingHorizontal: hPad }]}>
         <View style={[styles.headerRow, isDesktop && styles.headerRowDesktop]}>
-          {isDesktop && posterUrl(data.poster_path) && (
-            <Image
-              source={{ uri: posterUrl(data.poster_path, "w500")! }}
-              style={styles.poster}
-            />
+          {isDesktop && data.poster_path && (
+            <Image source={{ uri: data.poster_path }} style={styles.poster} />
           )}
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{data.title}</Text>
@@ -182,8 +156,8 @@ export default function DetailScreen({ route, navigation }: any) {
               keyExtractor={(c) => String(c.id)}
               renderItem={({ item: c }) => (
                 <View style={styles.castItem}>
-                  {profileUrl(c.profile_path) ? (
-                    <Image source={{ uri: profileUrl(c.profile_path)! }} style={styles.castAvatar} />
+                  {c.profile_path ? (
+                    <Image source={{ uri: c.profile_path }} style={styles.castAvatar} />
                   ) : (
                     <View style={[styles.castAvatar, styles.castAvatarPlaceholder]}>
                       <MaterialIcons name="person" size={26} color={colors.onSurfaceVariant} />
@@ -221,29 +195,19 @@ export default function DetailScreen({ route, navigation }: any) {
         )}
 
         <Text style={styles.sectionLabel}>Disponible en</Text>
-        {allProviders.length === 0 ? (
+        {data.providers.length === 0 ? (
           <Text style={styles.overview}>
             No encontramos plataformas de streaming por suscripción para tu país.
           </Text>
         ) : (
           <View style={styles.providersRow}>
-            {allProviders.map((p) => {
-              const resolvedUrl = resolveStreamingLink({
-                providerName: p.provider_name,
-                mediaType: data.media_type,
-                tmdbId: data.id,
-                title: data.title,
-                liveLinks,
-              });
-              return (
-                <ProviderBadge
-                  key={p.provider_id}
-                  provider={p}
-                  url={resolvedUrl}
-                  onPress={() => openStreamingLink(resolvedUrl)}
-                />
-              );
-            })}
+            {data.providers.map((p) => (
+              <ProviderBadge
+                key={p.providerName}
+                provider={p}
+                onPress={() => openStreamingLink(p.url)}
+              />
+            ))}
           </View>
         )}
 

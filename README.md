@@ -5,26 +5,43 @@ tendencias globales, catálogos por plataforma de streaming y por género, con
 búsqueda instantánea y fichas de detalle completas (sinopsis, reparto,
 tráiler y dónde verlo con deep link directo a la app).
 
+## Arquitectura
+
+El frontend (este repo, en la raíz) **no habla con TMDB ni con ninguna API
+externa**: consume únicamente la API propia de NowSee, en `backend/`. Ese
+backend es el que consulta TMDB/Wikidata/Streaming Availability, normaliza
+los datos y los guarda en una base MySQL propia — la fuente real de
+información de la app, que se completa y actualiza sola con jobs de
+sincronización (diario/semanal/mensual) y bajo demanda cuando alguien pide
+algo que todavía no existe. Ver `backend/README.md` para el detalle
+completo (schema, endpoints, jobs, deploy en Hostinger).
+
+```
+Usuarios (Web / Android / iOS)
+        │
+   API NowSee (backend/)
+        │
+  Base de datos NowSee (MySQL)
+        │
+ TMDB · Wikidata · Streaming Availability API
+```
+
 ## Setup
 
 ```bash
-# 1. Instalar dependencias
+# 1. Instalar dependencias del frontend
 npm install
 
-# 2. Poner tu API key de TMDB
-#    - Conseguila gratis en https://www.themoviedb.org/settings/api
-#    - Copiá .env.example a .env y completá EXPO_PUBLIC_TMDB_API_KEY
+# 2. Levantar el backend (ver backend/README.md para el setup completo:
+#    requiere MySQL + una API key de TMDB, ninguna de las dos las toca
+#    este proyecto directamente)
+cd backend && npm install && npm run dev   # API en http://localhost:4000
 
-# 3. No hace falta nada más para los deep links: Wikidata (la fuente
-#    principal) es pública y no usa API key.
+# 3. Apuntar el frontend a esa API
+#    - Copiá .env.example a .env en la raíz del repo
+#    - Completá EXPO_PUBLIC_API_BASE_URL (http://localhost:4000 en dev)
 
-# 4. (opcional) API key de Streaming Availability, para cubrir además
-#    Prime Video/Max/Paramount+/Hulu/Crunchyroll (Wikidata no los tiene):
-#    - Suscribite gratis (sin tarjeta) en:
-#      https://rapidapi.com/movie-of-the-night-movie-of-the-night-default/api/streaming-availability
-#    - Copiá el valor de "X-RapidAPI-Key" a EXPO_PUBLIC_STREAMING_AVAILABILITY_API_KEY
-
-# 5. Correr en modo web
+# 4. Correr el frontend en modo web
 npx expo start --web
 ```
 
@@ -47,25 +64,27 @@ npx netlify init      # o `netlify link` si ya existe el site
 npx netlify deploy --prod
 ```
 
-Variables de entorno a configurar en Netlify (Site settings → Environment
-variables), las mismas que en tu `.env` local:
+Variable de entorno a configurar en Netlify (Site settings → Environment
+variables):
 
-- `EXPO_PUBLIC_TMDB_API_KEY`
-- `EXPO_PUBLIC_STREAMING_AVAILABILITY_API_KEY`
+- `EXPO_PUBLIC_API_BASE_URL` → la URL pública del backend ya deployado
+  (ver `backend/README.md` para desplegarlo en Hostinger).
 
 ## Qué incluye
 
 - **Home dinámico**: tendencias globales (películas y series), filas por
   plataforma (Netflix, Disney+, Prime Video, Max, Apple TV+, Paramount+,
   Crunchyroll) y filas por género (Acción, Ciencia ficción, Comedia, Terror,
-  Drama, Animación, Documentales), todo actualizado desde TMDB.
+  Drama, Animación, Documentales), cada una con botón "Ver más" a su
+  catálogo completo con scroll infinito.
 - **Buscador instantáneo** de películas y series mientras se escribe.
 - **Ficha de detalle**: poster, banner, sinopsis, géneros, año, duración,
   rating, reparto principal, tráiler embebido, recomendaciones similares y
   botones "Disponible en" con deep link directo a cada plataforma.
 - **Mi Lista**: favoritos guardados localmente en el dispositivo.
 - **Navegación responsive**: sidebar fijo en desktop, barra inferior en
-  mobile.
+  mobile; el botón "Atrás" del navegador/dispositivo navega el historial
+  interno de la app (no sale del sitio).
 - **PWA instalable** en Android, iOS y escritorio (ver más abajo).
 - Diseño propio ("Cinematic Neo-Noir") inspirado en plataformas premium
   de streaming, con tipografías Sora/Inter y estética glassmórfica.
@@ -78,79 +97,41 @@ variables), las mismas que en tu `.env` local:
   handler, e íconos 192/512 (`any` + `maskable`) y apple-touch-icon.
 - El Service Worker precachea el shell (`/`, manifest, íconos) y cachea en
   tiempo de ejecución los assets con hash que genera Metro (JS/CSS/fuentes),
-  así que la interfaz sigue cargando offline. Las llamadas a TMDB no se
-  cachean (solo necesitamos que la interfaz ande sin conexión, no los datos).
-  Confirmado con Chrome (`Page.getInstallabilityErrors` → 0 errores) y con
-  una recarga en modo offline real.
+  así que la interfaz sigue cargando offline. Las llamadas a la API de
+  NowSee no se cachean (solo necesitamos que la interfaz ande sin conexión,
+  no los datos).
 - En Chrome/Edge/Android aparece el botón "Instalar aplicación" (pantalla de
   Perfil) apenas el navegador dispara `beforeinstallprompt`. En iOS Safari,
   que no tiene ese evento, se muestra la instrucción de "Compartir → Agregar
-  a pantalla de inicio".
+  a pantalla de inicio"; si ningún navegador lo ofrece automáticamente
+  (algunos Android con ROMs personalizadas), se muestra igual un cartel con
+  instrucciones para instalar manualmente desde el menú.
 
 ## Deep links a plataformas de streaming
 
-Arquitectura en capas, para que el resto de la app no conozca ningún detalle
-de cada plataforma:
-
-- `src/config/streamingPlatforms.ts`: la capa de abstracción (nombre, color,
-  provider id de TMDB, plantilla de universal link, búsqueda de fallback).
-- `src/api/wikidataStreamingIds.ts`: **fuente principal, 100% gratis y sin
-  límite.** [Wikidata](https://www.wikidata.org) es dato abierto (CC0) y
-  mantiene propiedades con el ID real de cada título en Netflix (P1874),
-  Disney+ (P7595/P7596) y Apple TV (P9586/P9751), cruzables por el ID de
-  TMDB (P4947/P4983). Sin API key, sin cuota, sin costo — a diferencia de
-  cualquier "free tier" comercial, esto no tiene techo que se vaya a topar
-  si NowSee crece. Cachea 90 días (memoria + AsyncStorage). Cobertura real
-  pero parcial (depende de qué haya documentado la comunidad, y todavía no
-  cubre Prime Video/Max/Paramount+/Hulu/Crunchyroll).
-- `src/api/streamingAvailability.ts`: cliente opcional de la
-  [Streaming Availability API](https://www.movieofthenight.com/about/api)
-  (vía RapidAPI, free tier 100 req/día) — rellena las plataformas que
-  Wikidata no cubre. Requiere `EXPO_PUBLIC_STREAMING_AVAILABILITY_API_KEY`;
-  sin ella la app funciona igual, solo con menos cobertura en esas
-  plataformas puntuales. Es una mejora incremental para cuando el
-  producto genere ingresos, no una dependencia obligatoria.
-- `src/data/streamingLinkOverrides.ts`: mapeo manual `tmdbId -> URL real`
-  para casos puntuales que ninguna de las dos fuentes anteriores resuelva.
-  Pensado para escalar: el día que haga falta, puede pasar a leer de una
-  fuente remota (hoja de cálculo publicada, CMS, backend) sin tocar el
-  resto de la app.
-- `src/api/streamingLinks.ts`: el resolver, en este orden de prioridad:
-  1. Wikidata (gratis).
-  2. Streaming Availability API (si está configurada).
-  3. Override manual.
-  4. Último recurso: búsqueda del título dentro de la plataforma.
-
-**Validado con casos reales** (Argentina): "Atrapados" → Netflix
-`netflix.com/title/81580367` (el ID exacto), "Stranger Things" → Netflix
-`netflix.com/title/80057281`, "Breaking Bad" → Netflix
-`netflix.com/title/70143836` — los tres resueltos 100% gratis vía
-Wikidata, sin ninguna API paga. "Oppenheimer" cayó al fallback de
-búsqueda porque Wikidata tiene documentado su ID de Apple TV pero
-todavía no el de Netflix para ese título puntual — es un hueco de
-cobertura de los datos (comunitarios, van creciendo con el tiempo), no
-un bug del código.
+La resolución de deep links (Wikidata + Streaming Availability API +
+overrides manuales + búsqueda de fallback) vive enteramente en el backend
+(`backend/src/services/streamingLinks.ts` y `backend/src/providers/`) y se
+cachea en la tabla `streaming_links`. El frontend solo recibe, por cada
+plataforma donde está disponible un título, una URL ya resuelta y lista
+para abrir (`ProviderBadge` + `src/api/deepLinks.ts`) — no conoce Wikidata
+ni la Streaming Availability API. Ver `backend/README.md` para el detalle
+de cómo se resuelve y se cachea cada link.
 
 El resultado siempre es una URL https normal (nunca un scheme custom tipo
 `nflx://`). En un dispositivo con la app instalada, el sistema operativo
 intercepta esa URL vía Universal Links (iOS) / App Links (Android) y abre
-la app directo en la ficha exacta — el mismo mecanismo que usa un link
-compartido oficialmente desde la propia plataforma. Si no está instalada,
-carga la web tal cual. No hace falta ninguna lógica de "detectar
-instalación + fallback": lo maneja el SO.
-
-**Sobre el link "compartido oficial"**: los links que genera el botón
-Compartir de cada plataforma (ej. el de Netflix con `shareUuid`, `trkid`,
-etc.) llevan parámetros de tracking efímeros que la plataforma genera por
-sesión — no hay forma de reconstruirlos desde afuera ni una API que los
-devuelva. La URL canónica (`netflix.com/title/{id}`) logra el mismo
-resultado (abre la app) porque es la misma Universal Link registrada, sin
-esos parámetros de tracking.
+la app directo en la ficha exacta. Si no está instalada, carga la web tal
+cual.
 
 ## Stack
 
-Expo (React Native + react-native-web), TypeScript, React Navigation,
-Axios contra la API de TMDB. Deploy como sitio estático PWA en Netlify.
+**Frontend**: Expo (React Native + react-native-web), TypeScript, React
+Navigation, Axios contra la API propia de NowSee. Deploy como sitio
+estático PWA en Netlify.
+
+**Backend** (`backend/`): Node.js + TypeScript + Express + Prisma sobre
+MySQL. Ver `backend/README.md`.
 
 ## Limitaciones conocidas
 
@@ -160,28 +141,28 @@ Axios contra la API de TMDB. Deploy como sitio estático PWA en Netlify.
    nativo cargado). Es una limitación de las plataformas, no del código.
 2. **Deep links exactos dependen de que Wikidata (o, si está configurada,
    la Streaming Availability API) tenga documentado ese título en esa
-   plataforma puntual.** Es cobertura real pero no 100% para absolutamente
-   todo el catálogo — cuando falta, cae a `streamingLinkOverrides.ts` y
-   por último a la búsqueda dentro de la plataforma (que igual abre la
-   app si está instalada, solo que sin apuntar directo a la ficha). La
-   cobertura de Wikidata la mantiene su comunidad y crece con el tiempo;
-   para títulos puntuales de alto tráfico conviene cargar un override
-   manual verificado.
-3. **País por defecto AR.** Para producción conviene sumar geo-IP o un
-   selector manual de país/región.
+   plataforma puntual.** Cuando falta, cae a un override manual y por
+   último a la búsqueda dentro de la plataforma (que igual abre la app si
+   está instalada, solo que sin apuntar directo a la ficha).
+3. **País por defecto AR**, tanto en el backend (sync jobs) como en el
+   frontend. Para producción conviene sumar geo-IP o un selector manual de
+   región (ver limitaciones en `backend/README.md`).
 4. **Datos de providers vienen de TMDB/JustWatch.** Es gratis pero puede
    tener algún desfasaje respecto al catálogo real de cada plataforma.
 5. **Sin login ni cuentas propias.** "Mi Lista" se guarda solo en el
-   dispositivo (AsyncStorage), no hay sincronización entre dispositivos.
+   dispositivo (AsyncStorage), no hay sincronización entre dispositivos —
+   el schema del backend ya deja lugar para sumar esto (usuarios,
+   favoritos, historial) sin rediseñar nada existente.
 
 ## Próximos pasos sugeridos
 
-- Cargar overrides manuales verificados para el catálogo de mayor
-  tráfico (los títulos que Wikidata todavía no documenta).
-- Si más adelante conviene sumar la Streaming Availability API (u otra
-  paga) para más cobertura, mover el cache a compartido entre usuarios
-  (hoy es por dispositivo) estira mucho más cualquier free tier.
-- Selector de país manual + geo-IP automático.
-- Backend propio con cache (para no pegarle a TMDB en cada request).
-- Cuentas de usuario y sincronización de favoritos.
+- Cuentas de usuario y sincronización de favoritos/listas entre
+  dispositivos (el backend ya tiene base de datos propia para apoyar esto).
+- Selector de país manual + geo-IP automático, sincronizando el catálogo
+  por región en vez de una sola región fija.
+- Recomendaciones con IA sobre los datos ya centralizados en la base
+  propia (hoy `similar_content` se llena con las recomendaciones de TMDB,
+  pero está pensado para poder alimentarse de un motor propio a futuro).
 - Notificaciones push de nuevos estrenos por plataforma favorita.
+- Monetización (suscripción Premium, publicidad) apoyada en la misma base
+  de usuarios/analíticas.
