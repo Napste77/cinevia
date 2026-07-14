@@ -1,0 +1,275 @@
+// Esquema de la base de datos propia de NowSee.
+//
+// Diseño: Movies y TVShows son las entidades "de contenido" propiamente
+// dichas. StreamingLink, ContentCast, Video, Image y SimilarContent son
+// compartidas entre ambas (un mismo link de streaming, elenco, tráiler,
+// imagen o "similar" puede apuntar a una película o a una serie), así que
+// usan un par (contentType, contentId) en vez de una FK directa: Prisma no
+// soporta asociaciones polimórficas nativas, así que la integridad
+// referencial de esas tablas se valida en la capa de servicios (ver
+// src/services), no con una FK de base de datos.
+//
+// Importante: poster/backdrop/logo/photo son SIEMPRE referencias (path
+// relativo de TMDB + `source`), nunca el binario de la imagen — la URL
+// completa se arma en el momento de servir la respuesta (ver
+// src/utils/media.ts), así el día que cambiemos de fuente de imágenes
+// alcanza con tocar un solo lugar.
+
+generator client {
+  provider        = "prisma-client-js"
+  previewFeatures = ["fullTextIndex"]
+}
+
+datasource db {
+  // MySQL: es lo que trae cualquier plan de Hostinger (compartido, cloud o
+  // VPS con el gestor de bases de datos de hPanel), así no depende de que
+  // el usuario instale Postgres a mano.
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum ContentType {
+  movie
+  tv
+}
+
+enum SyncStatus {
+  pending
+  synced
+  error
+}
+
+enum VideoType {
+  trailer
+  teaser
+  clip
+}
+
+enum ImageType {
+  poster
+  backdrop
+  logo
+}
+
+model Movie {
+  id            Int      @id @default(autoincrement())
+  tmdbId        Int      @unique @map("tmdb_id")
+  imdbId        String?  @map("imdb_id")
+  title         String
+  originalTitle String?  @map("original_title")
+  overview      String?  @db.Text
+  releaseDate   DateTime? @map("release_date")
+  runtime       Int?
+  rating        Float     @default(0)
+  popularity    Float     @default(0)
+  poster        String?   // path relativo, ej "/abc123.jpg"
+  posterSource  String    @default("tmdb") @map("poster_source")
+  backdrop      String?
+  backdropSource String   @default("tmdb") @map("backdrop_source")
+  language      String?   @map("original_language")
+  status        String?
+
+  lastSync      DateTime?  @map("last_sync")
+  syncStatus    SyncStatus @default(pending) @map("sync_status")
+  lastError     String?    @db.Text @map("last_error")
+  lastMediaSync DateTime?  @map("last_media_sync")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  genres MovieGenre[]
+
+  @@index([popularity])
+  @@index([releaseDate])
+  @@fulltext([title, originalTitle])
+  @@map("movies")
+}
+
+model TVShow {
+  id            Int      @id @default(autoincrement())
+  tmdbId        Int      @unique @map("tmdb_id")
+  imdbId        String?  @map("imdb_id")
+  title         String
+  originalTitle String?  @map("original_title")
+  overview      String?  @db.Text
+  seasons       Int?
+  episodes      Int?
+  firstAirDate  DateTime? @map("first_air_date")
+  lastAirDate   DateTime? @map("last_air_date")
+  rating        Float     @default(0)
+  popularity    Float     @default(0)
+  poster        String?
+  posterSource  String    @default("tmdb") @map("poster_source")
+  backdrop      String?
+  backdropSource String   @default("tmdb") @map("backdrop_source")
+  language      String?   @map("original_language")
+  status        String?
+
+  lastSync      DateTime?  @map("last_sync")
+  syncStatus    SyncStatus @default(pending) @map("sync_status")
+  lastError     String?    @db.Text @map("last_error")
+  lastMediaSync DateTime?  @map("last_media_sync")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  genres TVGenre[]
+
+  @@index([popularity])
+  @@index([firstAirDate])
+  @@fulltext([title, originalTitle])
+  @@map("tv_shows")
+}
+
+model Genre {
+  id     Int    @id @default(autoincrement())
+  tmdbId Int    @unique @map("tmdb_id")
+  name   String
+
+  movies MovieGenre[]
+  tvShows TVGenre[]
+
+  @@map("genres")
+}
+
+model MovieGenre {
+  movieId Int @map("movie_id")
+  genreId Int @map("genre_id")
+
+  movie Movie @relation(fields: [movieId], references: [id], onDelete: Cascade)
+  genre Genre @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([movieId, genreId])
+  @@index([genreId])
+  @@map("movie_genres")
+}
+
+model TVGenre {
+  tvShowId Int @map("tv_show_id")
+  genreId  Int @map("genre_id")
+
+  tvShow TVShow @relation(fields: [tvShowId], references: [id], onDelete: Cascade)
+  genre  Genre  @relation(fields: [genreId], references: [id], onDelete: Cascade)
+
+  @@id([tvShowId, genreId])
+  @@index([genreId])
+  @@map("tv_genres")
+}
+
+/// Catálogo estático de plataformas de streaming (Netflix, Disney+, etc).
+model Platform {
+  id        Int      @id @default(autoincrement())
+  tmdbId    Int?     @unique @map("tmdb_id")
+  name      String
+  slug      String   @unique
+  logo      String?
+  color     String?
+  website   String?
+  createdAt DateTime @default(now()) @map("created_at")
+
+  streamingLinks StreamingLink[]
+
+  @@map("platforms")
+}
+
+/// Deep links/URLs resueltos por título+plataforma+país. Es la versión
+/// server-side de lo que hoy resuelve src/api/streamingLinks.ts en el
+/// frontend (Wikidata + Streaming Availability API), cacheado en la DB en
+/// vez de recalcularse en cada visita.
+model StreamingLink {
+  id                Int      @id @default(autoincrement())
+  contentType       ContentType @map("content_type")
+  contentId         Int      @map("content_id")
+  platformId        Int      @map("platform_id")
+  providerContentId String?  @map("provider_content_id")
+  providerUrl       String?  @db.Text @map("provider_url")
+  androidDeepLink   String?  @db.Text @map("android_deep_link")
+  iosUniversalLink  String?  @db.Text @map("ios_universal_link")
+  country           String
+  verified          Boolean  @default(false)
+  lastChecked       DateTime? @map("last_checked")
+
+  platform Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+
+  @@unique([contentType, contentId, platformId, country], name: "content_platform_country")
+  @@index([contentType, contentId])
+  @@map("streaming_links")
+}
+
+model Cast {
+  id     Int    @id @default(autoincrement())
+  tmdbId Int    @unique @map("tmdb_id")
+  name   String
+  photo  String?
+  photoSource String @default("tmdb") @map("photo_source")
+
+  credits ContentCast[]
+
+  @@map("cast_members")
+}
+
+model ContentCast {
+  id          Int    @id @default(autoincrement())
+  contentType ContentType @map("content_type")
+  contentId   Int    @map("content_id")
+  actorId     Int    @map("actor_id")
+  character   String?
+  order       Int?
+
+  actor Cast @relation(fields: [actorId], references: [id], onDelete: Cascade)
+
+  @@unique([contentType, contentId, actorId])
+  @@index([contentType, contentId])
+  @@map("content_cast")
+}
+
+model Video {
+  id          Int       @id @default(autoincrement())
+  contentType ContentType @map("content_type")
+  contentId   Int       @map("content_id")
+  type        VideoType
+  site        String    @default("YouTube")
+  youtubeId   String    @map("youtube_id")
+  official    Boolean   @default(false)
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@unique([contentType, contentId, youtubeId])
+  @@index([contentType, contentId])
+  @@map("videos")
+}
+
+/// Imágenes adicionales (galería de posters/backdrops/logos alternativos).
+/// `filePath` es SIEMPRE el path relativo de la fuente (TMDB u otra), nunca
+/// el binario — ver nota de diseño arriba.
+model Image {
+  id          Int       @id @default(autoincrement())
+  contentType ContentType @map("content_type")
+  contentId   Int       @map("content_id")
+  type        ImageType
+  filePath    String    @map("file_path")
+  source      String    @default("tmdb")
+  width       Int?
+  height      Int?
+  language    String?
+  createdAt   DateTime  @default(now()) @map("created_at")
+
+  @@index([contentType, contentId, type])
+  @@map("images")
+}
+
+/// Recomendaciones/"contenido similar" pre-calculadas (hoy vienen del
+/// endpoint /recommendations de TMDB; a futuro puede alimentarse de un
+/// motor propio de recomendaciones con IA sin cambiar el resto del sistema).
+model SimilarContent {
+  id            Int      @id @default(autoincrement())
+  contentAType  ContentType @map("content_a_type")
+  contentAId    Int      @map("content_a_id")
+  contentBType  ContentType @map("content_b_type")
+  contentBId    Int      @map("content_b_id")
+  score         Float    @default(0)
+  createdAt     DateTime @default(now()) @map("created_at")
+
+  @@unique([contentAType, contentAId, contentBType, contentBId])
+  @@index([contentAType, contentAId])
+  @@map("similar_content")
+}
