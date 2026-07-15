@@ -1,6 +1,5 @@
 import React from "react";
 import { View, Text, FlatList, StyleSheet } from "react-native";
-import { DEFAULT_COUNTRY } from "../config/catalog";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
 import MediaCard from "../components/MediaCard";
@@ -19,7 +18,7 @@ export default function MyListScreen({ navigation }: any) {
 
   const goTo = (key: RouteKey) => navigation.navigate(key);
   const openDetail = (item: TrendingItem) =>
-    navigation.navigate("Detail", { id: item.id, mediaType: item.media_type, country: DEFAULT_COUNTRY });
+    navigation.navigate("Detail", { id: item.id, mediaType: item.media_type });
 
   return (
     <AppShell active="MyList" onNavigate={goTo}>

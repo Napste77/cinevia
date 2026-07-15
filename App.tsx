@@ -20,7 +20,11 @@ import DetailScreen from "./src/screens/DetailScreen";
 import MyListScreen from "./src/screens/MyListScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import CategoryScreen from "./src/screens/CategoryScreen";
+import AuthScreen from "./src/screens/AuthScreen";
 import { colors } from "./src/theme";
+import { AuthProvider } from "./src/context/AuthContext";
+import { RegionProvider } from "./src/context/RegionContext";
+import { FavoritesProvider } from "./src/context/FavoritesContext";
 
 const Stack = createNativeStackNavigator();
 
@@ -44,6 +48,7 @@ const linking: LinkingOptions<any> = {
         path: "title/:mediaType/:id",
         parse: { id: (id: string) => Number(id) },
       },
+      Auth: "login",
     },
   },
 };
@@ -66,16 +71,23 @@ export default function App() {
   }
 
   return (
-    <NavigationContainer linking={linking}>
-      <StatusBar style="light" />
-      <Stack.Navigator screenOptions={{ headerShown: false }}>
-        <Stack.Screen name="Home" component={HomeScreen} />
-        <Stack.Screen name="Search" component={SearchScreen} />
-        <Stack.Screen name="Detail" component={DetailScreen} />
-        <Stack.Screen name="MyList" component={MyListScreen} />
-        <Stack.Screen name="Profile" component={ProfileScreen} />
-        <Stack.Screen name="Category" component={CategoryScreen} />
-      </Stack.Navigator>
-    </NavigationContainer>
+    <AuthProvider>
+      <RegionProvider>
+        <FavoritesProvider>
+          <NavigationContainer linking={linking}>
+            <StatusBar style="light" />
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="Search" component={SearchScreen} />
+              <Stack.Screen name="Detail" component={DetailScreen} />
+              <Stack.Screen name="MyList" component={MyListScreen} />
+              <Stack.Screen name="Profile" component={ProfileScreen} />
+              <Stack.Screen name="Category" component={CategoryScreen} />
+              <Stack.Screen name="Auth" component={AuthScreen} />
+            </Stack.Navigator>
+          </NavigationContainer>
+        </FavoritesProvider>
+      </RegionProvider>
+    </AuthProvider>
   );
 }

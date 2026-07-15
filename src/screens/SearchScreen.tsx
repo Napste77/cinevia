@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import { View, Text, FlatList, StyleSheet, ActivityIndicator } from "react-native";
 import { searchTitles } from "../api/nowsee";
 import { TrendingItem } from "../types";
-import { DEFAULT_COUNTRY } from "../config/catalog";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
 import SearchBar from "../components/SearchBar";
@@ -45,7 +44,7 @@ export default function SearchScreen({ navigation }: any) {
 
   const goTo = (key: RouteKey) => navigation.navigate(key);
   const openDetail = (item: TrendingItem) =>
-    navigation.navigate("Detail", { id: item.id, mediaType: item.media_type, country: DEFAULT_COUNTRY });
+    navigation.navigate("Detail", { id: item.id, mediaType: item.media_type });
 
   return (
     <AppShell active="Search" onNavigate={goTo}>

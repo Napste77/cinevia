@@ -4,20 +4,22 @@ import {
   getTrendingByCountry,
   getByPlatform,
   getByGenre,
+  getPlatforms,
 } from "../api/nowsee";
-import { TrendingItem } from "../types";
-import { DEFAULT_COUNTRY, HOME_PLATFORM_ROWS, GENRE_ROWS } from "../config/catalog";
+import { TrendingItem, Platform } from "../types";
+import { HOME_PLATFORM_ROWS, GENRE_ROWS } from "../config/catalog";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
 import Hero from "../components/Hero";
 import Row from "../components/Row";
 import TopBar from "../components/TopBar";
 import { useFavorites } from "../hooks/useFavorites";
+import { useRegion } from "../context/RegionContext";
 import { colors, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 
 export default function HomeScreen({ navigation }: any) {
-  const country = DEFAULT_COUNTRY;
+  const { country } = useRegion();
   const { isDesktop } = useResponsive();
   const { isFavorite, toggleFavorite } = useFavorites();
 
@@ -25,9 +27,34 @@ export default function HomeScreen({ navigation }: any) {
   const [trendingSeries, setTrendingSeries] = useState<TrendingItem[]>([]);
   const [platformRows, setPlatformRows] = useState<Record<string, TrendingItem[]>>({});
   const [genreRowsData, setGenreRowsData] = useState<Record<string, TrendingItem[]>>({});
+  const [availablePlatforms, setAvailablePlatforms] = useState<Platform[] | null>(null);
   const [loadingMovies, setLoadingMovies] = useState(true);
   const [loadingSeries, setLoadingSeries] = useState(true);
   const [loadingRows, setLoadingRows] = useState(true);
+
+  // Plataformas que realmente operan en la región activa (punto 1 del
+  // spec de geolocalización) — filtra las filas de plataforma del Home.
+  useEffect(() => {
+    let cancelled = false;
+    getPlatforms(country)
+      .then((platforms) => {
+        if (!cancelled) setAvailablePlatforms(platforms);
+      })
+      .catch(() => {
+        if (!cancelled) setAvailablePlatforms(null);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [country]);
+
+  const visiblePlatformRows = useMemo(
+    () =>
+      availablePlatforms
+        ? HOME_PLATFORM_ROWS.filter((p) => availablePlatforms.some((ap) => ap.id === p.providerId))
+        : HOME_PLATFORM_ROWS,
+    [availablePlatforms]
+  );
 
   // Películas y series se piden por separado (no con Promise.all) para que
   // el Hero pueda pintar apenas responde la primera, en vez de esperar
@@ -73,14 +100,14 @@ export default function HomeScreen({ navigation }: any) {
   // concurrentes del navegador con el contenido crítico de arriba (Hero +
   // primera fila), que es lo que de verdad define el LCP percibido.
   useEffect(() => {
-    if (loadingMovies) return;
+    if (loadingMovies || availablePlatforms === null) return;
     let cancelled = false;
     (async () => {
       setLoadingRows(true);
       try {
         const [platformResults, genreResults] = await Promise.all([
           Promise.allSettled(
-            HOME_PLATFORM_ROWS.map((p) => getByPlatform(country, p.providerId, "movie"))
+            visiblePlatformRows.map((p) => getByPlatform(country, p.providerId, "movie"))
           ),
           Promise.allSettled(
             GENRE_ROWS.map((g) => getByGenre(country, g.genreId, "movie"))
@@ -90,7 +117,7 @@ export default function HomeScreen({ navigation }: any) {
 
         const nextPlatformRows: Record<string, TrendingItem[]> = {};
         platformResults.forEach((result, i) => {
-          nextPlatformRows[HOME_PLATFORM_ROWS[i].key] =
+          nextPlatformRows[visiblePlatformRows[i].key] =
             result.status === "fulfilled" ? result.value : [];
         });
         setPlatformRows(nextPlatformRows);
@@ -108,7 +135,7 @@ export default function HomeScreen({ navigation }: any) {
     return () => {
       cancelled = true;
     };
-  }, [country, loadingMovies]);
+  }, [country, loadingMovies, availablePlatforms, visiblePlatformRows]);
 
   const heroItem = useMemo(
     () => trendingMovies[0] || trendingSeries[0] || null,
@@ -166,7 +193,7 @@ export default function HomeScreen({ navigation }: any) {
             onSeeAllPress={() => openCategory("trending-series")}
           />
 
-          {HOME_PLATFORM_ROWS.map((platform) => (
+          {visiblePlatformRows.map((platform) => (
             <Row
               key={platform.key}
               title={platform.label}

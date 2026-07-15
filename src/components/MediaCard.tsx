@@ -6,9 +6,11 @@ import {
   Pressable,
   StyleSheet,
 } from "react-native";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { TrendingItem } from "../types";
 import { colors, radii, fonts } from "../theme";
 import RatingBadge from "./RatingBadge";
+import { useFavorites } from "../hooks/useFavorites";
 
 const CARD_WIDTH = 160;
 
@@ -22,8 +24,10 @@ export default function MediaCard({
   width?: number;
 }) {
   const [hovered, setHovered] = useState(false);
+  const { isFavorite, toggleFavorite } = useFavorites();
   const uri = item.poster_path;
   const year = item.release_date ? item.release_date.slice(0, 4) : null;
+  const fav = isFavorite(item);
 
   return (
     <Pressable
@@ -57,6 +61,20 @@ export default function MediaCard({
         <View style={styles.ratingWrap}>
           <RatingBadge value={item.vote_average} />
         </View>
+        <Pressable
+          style={[styles.favoriteButton, fav && styles.favoriteButtonActive]}
+          onPress={(e: any) => {
+            e.stopPropagation?.();
+            toggleFavorite(item);
+          }}
+          hitSlop={8}
+        >
+          <MaterialIcons
+            name={fav ? "check" : "add"}
+            size={18}
+            color={fav ? colors.onPrimaryContainer : colors.onSurface}
+          />
+        </Pressable>
       </View>
       <Text style={styles.title} numberOfLines={1}>
         {item.title}
@@ -109,6 +127,18 @@ const styles = StyleSheet.create({
     fontFamily: fonts.label,
   },
   ratingWrap: { position: "absolute", top: 8, right: 8 },
+  favoriteButton: {
+    position: "absolute",
+    bottom: 8,
+    right: 8,
+    width: 28,
+    height: 28,
+    borderRadius: 14,
+    backgroundColor: "rgba(12,19,36,0.75)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  favoriteButtonActive: { backgroundColor: colors.primaryContainer },
   title: {
     color: colors.onSurface,
     fontFamily: fonts.label,

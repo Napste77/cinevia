@@ -35,6 +35,13 @@ export interface CastMember {
   profile_path: string | null;
 }
 
+/** Calificación propia de NowSee (1-10) — separada del vote_average de TMDB. */
+export interface NowSeeRating {
+  average: number;
+  count: number;
+  myRating: number | null;
+}
+
 export interface DetailData {
   id: number;
   media_type: MediaType;
@@ -48,8 +55,18 @@ export interface DetailData {
   year: string | null;
   runtimeMinutes: number | null;
   vote_average: number;
+  nowseeRating: NowSeeRating;
   cast: CastMember[];
   recommendations: TrendingItem[];
+}
+
+export interface Platform {
+  id: number;
+  slug: string;
+  name: string;
+  logo: string | null;
+  color: string | null;
+  website: string | null;
 }
 
 /** Filas de género que arma el Home (usa IDs de género de TMDB para movie). */

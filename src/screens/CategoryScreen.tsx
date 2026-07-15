@@ -1,23 +1,36 @@
-import React, { useCallback, useEffect, useState } from "react";
-import { View, Text, Pressable, FlatList, StyleSheet, ActivityIndicator } from "react-native";
+import React, { useCallback, useEffect, useMemo, useState } from "react";
+import { View, Text, Pressable, FlatList, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
-import { getCategoryPage } from "../api/nowsee";
-import { DEFAULT_COUNTRY, getCategoryBySlug } from "../config/catalog";
-import { TrendingItem } from "../types";
+import { getCategoryPage, getPlatforms } from "../api/nowsee";
+import { getCategoryBySlug } from "../config/catalog";
+import { TrendingItem, Platform } from "../types";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
 import MediaCard from "../components/MediaCard";
+import FilterChip from "../components/FilterChip";
 import { useResponsive } from "../hooks/useResponsive";
+import { useRegion } from "../context/RegionContext";
 import { colors, fonts, spacing } from "../theme";
 
-/** Catálogo completo de una categoría (/category/:slug), con scroll infinito. */
+type SortOption = "popularity" | "newest";
+
+const CURRENT_YEAR = new Date().getFullYear();
+const YEAR_OPTIONS = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - i);
+
+/** Catálogo completo de una categoría (/category/:slug), con scroll infinito y filtros combinables. */
 export default function CategoryScreen({ route, navigation }: any) {
   const { slug } = route.params;
   const category = getCategoryBySlug(slug);
+  const { country } = useRegion();
   const { isDesktop, columns, width } = useResponsive();
   const hPad = isDesktop ? spacing.marginDesktop : spacing.marginMobile;
   const gutter = 14;
   const cardWidth = (width - hPad * 2 - gutter * (columns - 1)) / columns;
+
+  const [platforms, setPlatforms] = useState<Platform[]>([]);
+  const [platformFilter, setPlatformFilter] = useState<number | null>(null);
+  const [yearFilter, setYearFilter] = useState<number | null>(null);
+  const [sort, setSort] = useState<SortOption>("popularity");
 
   const [items, setItems] = useState<TrendingItem[]>([]);
   const [page, setPage] = useState(1);
@@ -25,6 +38,17 @@ export default function CategoryScreen({ route, navigation }: any) {
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
   const [error, setError] = useState(false);
+
+  useEffect(() => {
+    getPlatforms(country)
+      .then(setPlatforms)
+      .catch(() => setPlatforms([]));
+  }, [country]);
+
+  const extraFilters = useMemo(
+    () => ({ providerId: platformFilter ?? undefined, year: yearFilter ?? undefined, sort }),
+    [platformFilter, yearFilter, sort]
+  );
 
   useEffect(() => {
     if (!category) {
@@ -37,7 +61,7 @@ export default function CategoryScreen({ route, navigation }: any) {
     setTotalPages(1);
     setLoading(true);
     setError(false);
-    getCategoryPage(DEFAULT_COUNTRY, category.source, 1)
+    getCategoryPage(country, category.source, 1, extraFilters)
       .then(({ items: firstPage, totalPages: tp }) => {
         if (cancelled) return;
         setItems(firstPage);
@@ -54,13 +78,13 @@ export default function CategoryScreen({ route, navigation }: any) {
       cancelled = true;
     };
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [slug]);
+  }, [slug, country, extraFilters]);
 
   const loadMore = useCallback(() => {
     if (!category || loading || loadingMore || page >= totalPages) return;
     setLoadingMore(true);
     const nextPage = page + 1;
-    getCategoryPage(DEFAULT_COUNTRY, category.source, nextPage)
+    getCategoryPage(country, category.source, nextPage, extraFilters)
       .then(({ items: more, totalPages: tp }) => {
         setItems((prev) => [...prev, ...more]);
         setPage(nextPage);
@@ -68,17 +92,13 @@ export default function CategoryScreen({ route, navigation }: any) {
       })
       .catch((e) => console.error("Error cargando más resultados", e))
       .finally(() => setLoadingMore(false));
-  }, [category, loading, loadingMore, page, totalPages]);
+  }, [category, loading, loadingMore, page, totalPages, country, extraFilters]);
 
   const goTo = (key: RouteKey) => navigation.navigate(key);
   const goBack = () =>
     navigation.canGoBack() ? navigation.goBack() : navigation.navigate("Home");
   const openDetail = (item: TrendingItem) =>
-    navigation.navigate("Detail", {
-      id: item.id,
-      mediaType: item.media_type,
-      country: DEFAULT_COUNTRY,
-    });
+    navigation.navigate("Detail", { id: item.id, mediaType: item.media_type });
 
   return (
     <AppShell active={null} onNavigate={goTo}>
@@ -92,6 +112,41 @@ export default function CategoryScreen({ route, navigation }: any) {
           </Text>
         </View>
 
+        {category && (
+          <View style={{ paddingLeft: hPad }}>
+            {category.source.type !== "platform" && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                <FilterChip label="Todas las plataformas" active={platformFilter === null} onPress={() => setPlatformFilter(null)} />
+                {platforms.map((p) => (
+                  <FilterChip
+                    key={p.slug}
+                    label={p.name}
+                    active={platformFilter === p.id}
+                    onPress={() => setPlatformFilter(p.id)}
+                  />
+                ))}
+              </ScrollView>
+            )}
+            <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+              <FilterChip
+                label="Popularidad"
+                active={sort === "popularity"}
+                onPress={() => setSort("popularity")}
+              />
+              <FilterChip label="Más nuevo" active={sort === "newest"} onPress={() => setSort("newest")} />
+              <FilterChip label="Todos los años" active={yearFilter === null} onPress={() => setYearFilter(null)} />
+              {YEAR_OPTIONS.map((year) => (
+                <FilterChip
+                  key={year}
+                  label={String(year)}
+                  active={yearFilter === year}
+                  onPress={() => setYearFilter(year)}
+                />
+              ))}
+            </ScrollView>
+          </View>
+        )}
+
         {!category ? (
           <Text style={[styles.message, { paddingHorizontal: hPad }]}>
             No encontramos esta categoría.
@@ -104,7 +159,7 @@ export default function CategoryScreen({ route, navigation }: any) {
           </Text>
         ) : items.length === 0 ? (
           <Text style={[styles.message, { paddingHorizontal: hPad }]}>
-            No encontramos contenido para esta categoría todavía.
+            No encontramos contenido para esta combinación de filtros.
           </Text>
         ) : (
           <FlatList
@@ -150,6 +205,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   title: { flex: 1, color: colors.onSurface, fontFamily: fonts.display, fontSize: 24 },
+  filterRow: { gap: 8, paddingBottom: 10, paddingRight: 16 },
   message: {
     color: colors.onSurfaceVariant,
     fontFamily: fonts.body,

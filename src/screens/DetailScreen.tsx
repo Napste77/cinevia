@@ -20,15 +20,18 @@ import { DetailData } from "../types";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 import { useFavorites } from "../hooks/useFavorites";
+import { useRegion } from "../context/RegionContext";
 import Chip from "../components/Chip";
 import ProviderBadge from "../components/ProviderBadge";
 import MediaCard from "../components/MediaCard";
+import RatingWidget from "../components/RatingWidget";
+import CommentsSection from "../components/CommentsSection";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
-import { DEFAULT_COUNTRY } from "../config/catalog";
 
 export default function DetailScreen({ route, navigation }: any) {
-  const { id, mediaType, country = DEFAULT_COUNTRY } = route.params;
+  const { id, mediaType } = route.params;
+  const { country } = useRegion();
   const { width } = useWindowDimensions();
   const { isDesktop } = useResponsive();
   const { isFavorite, toggleFavorite } = useFavorites();
@@ -113,7 +116,10 @@ export default function DetailScreen({ route, navigation }: any) {
                 </Text>
               ) : null}
               {data.vote_average > 0 && (
-                <Text style={styles.metaText}> · ★ {data.vote_average.toFixed(1)}</Text>
+                <Text style={styles.metaText}> · TMDB ★ {data.vote_average.toFixed(1)}</Text>
+              )}
+              {data.nowseeRating.count > 0 && (
+                <Text style={styles.metaText}> · NowSee ★ {data.nowseeRating.average.toFixed(1)}</Text>
               )}
               <Text style={styles.metaText}>
                 {" · "}
@@ -194,6 +200,14 @@ export default function DetailScreen({ route, navigation }: any) {
           </>
         )}
 
+        <Text style={styles.sectionLabel}>Calificación NowSee</Text>
+        <RatingWidget
+          mediaType={data.media_type}
+          contentId={data.id}
+          rating={data.nowseeRating}
+          onChange={(nowseeRating) => setData({ ...data, nowseeRating })}
+        />
+
         <Text style={styles.sectionLabel}>Disponible en</Text>
         {data.providers.length === 0 ? (
           <Text style={styles.overview}>
@@ -235,6 +249,9 @@ export default function DetailScreen({ route, navigation }: any) {
             />
           </>
         )}
+
+        <Text style={styles.sectionLabel}>Comentarios</Text>
+        <CommentsSection mediaType={data.media_type} contentId={data.id} />
       </View>
     </ScrollView>
     </AppShell>
