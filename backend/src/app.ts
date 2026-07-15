@@ -8,10 +8,20 @@ import { genresRouter } from "./routes/genres.routes";
 import { discoverRouter } from "./routes/discover.routes";
 import { providersRouter } from "./routes/providers.routes";
 import { internalRouter } from "./routes/internal.routes";
+import { authRouter } from "./routes/auth.routes";
+import { geoRouter } from "./routes/geo.routes";
+import { ratingsRouter } from "./routes/ratings.routes";
+import { commentsRouter } from "./routes/comments.routes";
+import { favoritesRouter } from "./routes/favorites.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 export function createApp() {
   const app = express();
+
+  // Detrás de nginx/Netlify/un balanceador (Hostinger VPS con reverse
+  // proxy, o cualquier PaaS), sin esto `req.ip` sería la IP del proxy, no
+  // la del visitante — rompería la detección de país por IP (/geo/detect).
+  app.set("trust proxy", true);
 
   app.use(cors());
   app.use(express.json());
@@ -28,6 +38,11 @@ export function createApp() {
   app.use(discoverRouter);
   app.use(providersRouter);
   app.use(internalRouter);
+  app.use(authRouter);
+  app.use(geoRouter);
+  app.use(ratingsRouter);
+  app.use(commentsRouter);
+  app.use(favoritesRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

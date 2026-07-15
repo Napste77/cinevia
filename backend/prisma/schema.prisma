@@ -51,6 +51,17 @@ enum ImageType {
   logo
 }
 
+enum AuthProvider {
+  email
+  google
+  apple
+}
+
+enum RegionSource {
+  detected
+  manual
+}
+
 model Movie {
   id            Int      @id @default(autoincrement())
   tmdbId        Int      @unique @map("tmdb_id")
@@ -168,6 +179,7 @@ model Platform {
   createdAt DateTime @default(now()) @map("created_at")
 
   streamingLinks StreamingLink[]
+  availability   PlatformAvailability[]
 
   @@map("platforms")
 }
@@ -272,4 +284,212 @@ model SimilarContent {
   @@unique([contentAType, contentAId, contentBType, contentBId])
   @@index([contentAType, contentAId])
   @@map("similar_content")
+}
+
+// ---------------------------------------------------------------------
+// Cuentas de usuario, región, calificaciones, comentarios, listas.
+//
+// Uso sin cuenta sigue andando igual (navegar, buscar, ver fichas,
+// providers) — todo lo de acá abajo es opt-in y gatea recién en la capa
+// de rutas (ver src/middleware/auth.ts: optionalAuth vs requireAuth).
+// ---------------------------------------------------------------------
+
+model User {
+  id           Int          @id @default(autoincrement())
+  email        String       @unique
+  /// null si la cuenta es de Google/Apple (no tiene password propia acá).
+  passwordHash String?      @map("password_hash")
+  name         String?
+  avatarUrl    String?      @map("avatar_url")
+  language     String       @default("es")
+  /// Región activa (ISO 3166-1 alpha-2). Null hasta la primera detección.
+  country      String?
+  authProvider AuthProvider @default(email) @map("auth_provider")
+  /// `sub` de Google/Apple cuando el login es con esos providers.
+  providerId   String?      @map("provider_id")
+
+  // "Preparado para futuras versiones" (spec): el toggle ya existe y se
+  // persiste, falta el envío real de notificaciones.
+  notifyNewReleases Boolean @default(true) @map("notify_new_releases")
+  notifyComments    Boolean @default(true) @map("notify_comments")
+
+  createdAt DateTime @default(now()) @map("created_at")
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  sessions  UserSession[]
+  regions   UserRegion[]
+  ratings   UserRating[]
+  comments  UserComment[]
+  favorites UserFavorite[]
+  lists     UserList[]
+  views     UserView[]
+
+  @@unique([authProvider, providerId], name: "provider_identity")
+  @@map("users")
+}
+
+/// Refresh tokens activos (uno por login/dispositivo). Permite "cerrar
+/// sesión" real (revocar) y es la base de la sincronización entre
+/// dispositivos: cada dispositivo logueado tiene su propia sesión acá.
+model UserSession {
+  id               Int       @id @default(autoincrement())
+  userId           Int       @map("user_id")
+  refreshTokenHash String    @map("refresh_token_hash")
+  userAgent        String?   @map("user_agent")
+  createdAt        DateTime  @default(now()) @map("created_at")
+  expiresAt        DateTime  @map("expires_at")
+  revokedAt        DateTime? @map("revoked_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_sessions")
+}
+
+/// Historial de cambios de región (detectada al ingresar + cada cambio
+/// manual desde el perfil). `User.country` siempre tiene la última.
+model UserRegion {
+  id        Int          @id @default(autoincrement())
+  userId    Int          @map("user_id")
+  country   String
+  source    RegionSource
+  createdAt DateTime     @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("user_regions")
+}
+
+/// Calificación propia de NowSee (1-10), una por usuario+contenido — NO
+/// reemplaza el rating de TMDB, se muestran ambos por separado (ver
+/// src/serializers.ts).
+model UserRating {
+  id          Int         @id @default(autoincrement())
+  userId      Int         @map("user_id")
+  contentType ContentType @map("content_type")
+  contentId   Int         @map("content_id")
+  value       Int
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentType, contentId])
+  @@index([contentType, contentId])
+  @@index([userId])
+  @@map("user_ratings")
+}
+
+model UserComment {
+  id          Int         @id @default(autoincrement())
+  userId      Int         @map("user_id")
+  contentType ContentType @map("content_type")
+  contentId   Int         @map("content_id")
+  body        String      @db.Text
+  /// Preparado para respuestas anidadas (no expuesto en la UI todavía).
+  parentId    Int?        @map("parent_id")
+  /// Preparado para likes (no expuesto en la UI todavía).
+  likesCount  Int         @default(0) @map("likes_count")
+  /// Preparado para reportes de moderación (no expuesto en la UI todavía).
+  reported    Boolean     @default(false)
+  createdAt   DateTime    @default(now()) @map("created_at")
+  updatedAt   DateTime    @updatedAt @map("updated_at")
+
+  user    User          @relation(fields: [userId], references: [id], onDelete: Cascade)
+  parent  UserComment?  @relation("CommentReplies", fields: [parentId], references: [id], onDelete: Cascade)
+  replies UserComment[] @relation("CommentReplies")
+
+  @@index([contentType, contentId])
+  @@index([userId])
+  @@map("user_comments")
+}
+
+/// "Mi Lista": acceso rápido desde la card, una sola lista implícita por
+/// usuario. Las listas con nombre propio (a futuro) son UserList/UserListItem.
+model UserFavorite {
+  id          Int         @id @default(autoincrement())
+  userId      Int         @map("user_id")
+  contentType ContentType @map("content_type")
+  contentId   Int         @map("content_id")
+  createdAt   DateTime    @default(now()) @map("created_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentType, contentId])
+  @@index([userId])
+  @@map("user_favorites")
+}
+
+/// Listas personalizadas con nombre (ej. "Para ver en pareja"). Preparado
+/// para la UI de "Crear listas" — hoy "Mi Lista" (UserFavorite) alcanza
+/// para el MVP, esto ya deja la base para listas múltiples.
+model UserList {
+  id        Int      @id @default(autoincrement())
+  userId    Int      @map("user_id")
+  name      String
+  createdAt DateTime @default(now()) @map("created_at")
+
+  user  User           @relation(fields: [userId], references: [id], onDelete: Cascade)
+  items UserListItem[]
+
+  @@index([userId])
+  @@map("user_lists")
+}
+
+model UserListItem {
+  id          Int         @id @default(autoincrement())
+  listId      Int         @map("list_id")
+  contentType ContentType @map("content_type")
+  contentId   Int         @map("content_id")
+  addedAt     DateTime    @default(now()) @map("added_at")
+
+  list UserList @relation(fields: [listId], references: [id], onDelete: Cascade)
+
+  @@unique([listId, contentType, contentId])
+  @@map("user_list_items")
+}
+
+/// Marca "visto" (se registra solo al abrir una ficha estando logueado) —
+/// alimenta la estadística "películas/series vistas" del perfil.
+model UserView {
+  id          Int         @id @default(autoincrement())
+  userId      Int         @map("user_id")
+  contentType ContentType @map("content_type")
+  contentId   Int         @map("content_id")
+  viewedAt    DateTime    @default(now()) @map("viewed_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, contentType, contentId])
+  @@index([userId])
+  @@map("user_views")
+}
+
+/// Catálogo de países soportados (selector de región del perfil +
+/// detección por IP).
+model Country {
+  id   Int    @id @default(autoincrement())
+  code String @unique
+  name String
+
+  platforms PlatformAvailability[]
+
+  @@map("countries")
+}
+
+/// Qué plataforma opera en qué país — independiente de qué títulos
+/// puntuales tenga cada una ahí (eso es StreamingLink). Alimenta el
+/// filtro de plataformas por región y el paso 1 de "mostrar las
+/// plataformas disponibles para esa región".
+model PlatformAvailability {
+  id         Int @id @default(autoincrement())
+  platformId Int @map("platform_id")
+  countryId  Int @map("country_id")
+
+  platform Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+  country  Country  @relation(fields: [countryId], references: [id], onDelete: Cascade)
+
+  @@unique([platformId, countryId])
+  @@map("platform_availability")
 }

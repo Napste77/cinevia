@@ -78,108 +78,104 @@ export async function bootstrapTrendingMovies() {
 export interface DiscoverMoviesParams {
   genreTmdbId?: number;
   platformTmdbId?: number;
+  /** Año exacto de estreno. */
+  year?: number;
+  /** "popularity" (default) o "newest" (estreno más reciente primero). */
+  sortBy?: "popularity" | "newest";
   country?: string;
   page?: number;
   pageSize?: number;
 }
 
+/**
+ * Discover combinable: género + plataforma + año + orden, todos a la vez
+ * (no uno solo). Estrategia: arma el WHERE de Prisma con todos los
+ * filtros que apliquen; si la cobertura sincronizada no alcanza para la
+ * página pedida, resuelve esa combinación exacta en vivo contra TMDB (que
+ * sí soporta combinar with_genres + with_watch_providers + año en una
+ * sola llamada) y la persiste antes de volver a consultar la base.
+ */
 export async function discoverMovies(params: DiscoverMoviesParams) {
   const page = params.page || 1;
   const pageSize = params.pageSize || PAGE_SIZE;
   const country = params.country || env.defaultCountry;
+  const orderBy = params.sortBy === "newest" ? { releaseDate: "desc" as const } : { popularity: "desc" as const };
 
+  let platformId: number | null = null;
   if (params.platformTmdbId) {
-    return discoverMoviesByPlatform(params.platformTmdbId, country, page, pageSize);
+    platformId = await getPlatformIdByTmdbId(params.platformTmdbId);
+    if (!platformId) return [];
   }
+
+  const baseWhere: any = {};
   if (params.genreTmdbId) {
-    return discoverMoviesByGenre(params.genreTmdbId, page, pageSize);
+    baseWhere.genres = { some: { genre: { tmdbId: params.genreTmdbId } } };
   }
-  return listTrendingMovies(page, pageSize);
-}
+  if (params.year) {
+    baseWhere.releaseDate = {
+      gte: new Date(Date.UTC(params.year, 0, 1)),
+      lt: new Date(Date.UTC(params.year + 1, 0, 1)),
+    };
+  }
 
-async function discoverMoviesByGenre(genreTmdbId: number, page: number, pageSize: number) {
-  const where = { genres: { some: { genre: { tmdbId: genreTmdbId } } } };
-  const total = await prisma.movie.count({ where });
-
-  if (total < page * pageSize) {
-    // Todavía no sincronizamos suficiente cobertura para esta página:
-    // la resolvemos en vivo contra TMDB y la persistimos (crece la base).
-    const data = await tmdbDiscover({
-      mediaType: "movie",
-      watchRegion: env.defaultCountry,
-      withGenres: genreTmdbId,
-      page,
+  const platformContentIds = async () => {
+    const links = await prisma.streamingLink.findMany({
+      where: { contentType: "movie", platformId: platformId!, country },
+      select: { contentId: true },
     });
-    for (const raw of data.results) {
-      await upsertMovie(raw);
-    }
-  }
+    return links.map((l) => l.contentId);
+  };
 
-  return prisma.movie.findMany({
-    where,
-    orderBy: { popularity: "desc" },
-    skip: (page - 1) * pageSize,
-    take: pageSize,
-    include: { genres: { include: { genre: true } } },
-  });
-}
+  const countMatching = async () => {
+    if (!platformId) return prisma.movie.count({ where: baseWhere });
+    const ids = await platformContentIds();
+    if (ids.length === 0) return 0;
+    return prisma.movie.count({ where: { ...baseWhere, id: { in: ids } } });
+  };
 
-async function discoverMoviesByPlatform(
-  platformTmdbId: number,
-  country: string,
-  page: number,
-  pageSize: number
-) {
-  const platformId = await getPlatformIdByTmdbId(platformTmdbId);
-  if (!platformId) return [];
-
-  const linkWhere = { contentType: "movie" as const, platformId, country };
-  const total = await prisma.streamingLink.count({ where: linkWhere });
+  const total = await countMatching();
 
   if (total < page * pageSize) {
     const data = await tmdbDiscover({
       mediaType: "movie",
       watchRegion: country,
-      withWatchProviders: platformTmdbId,
+      withGenres: params.genreTmdbId,
+      withWatchProviders: params.platformTmdbId,
+      year: params.year,
       page,
     });
     for (const raw of data.results) {
       const movie = await upsertMovie(raw);
-      await prisma.streamingLink.upsert({
-        where: {
-          content_platform_country: {
-            contentType: "movie",
-            contentId: movie.id,
-            platformId,
-            country,
+      if (platformId) {
+        await prisma.streamingLink.upsert({
+          where: {
+            content_platform_country: {
+              contentType: "movie",
+              contentId: movie.id,
+              platformId,
+              country,
+            },
           },
-        },
-        update: {},
-        create: {
-          contentType: "movie",
-          contentId: movie.id,
-          platformId,
-          country,
-          verified: false,
-        },
-      });
+          update: {},
+          create: { contentType: "movie", contentId: movie.id, platformId, country, verified: false },
+        });
+      }
     }
   }
 
-  const links = await prisma.streamingLink.findMany({
-    where: linkWhere,
+  const where = { ...baseWhere } as any;
+  if (platformId) {
+    const ids = await platformContentIds();
+    where.id = { in: ids.length ? ids : [-1] };
+  }
+
+  return prisma.movie.findMany({
+    where,
+    orderBy,
     skip: (page - 1) * pageSize,
     take: pageSize,
-  });
-  const movieIds = links.map((l) => l.contentId);
-  if (movieIds.length === 0) return [];
-
-  const movies = await prisma.movie.findMany({
-    where: { id: { in: movieIds } },
-    orderBy: { popularity: "desc" },
     include: { genres: { include: { genre: true } } },
   });
-  return movies;
 }
 
 export { upsertMovie };

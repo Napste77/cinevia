@@ -23,17 +23,28 @@ export interface TmdbDiscoverParams {
   watchRegion?: string;
   withWatchProviders?: number;
   withGenres?: number;
+  /** Año exacto de estreno (movie: primary_release_year, tv: first_air_date_year). */
+  year?: number;
+  sortBy?: "popularity.desc" | "release_date.desc" | "vote_average.desc";
   page?: number;
 }
 
 export async function tmdbDiscover(params: TmdbDiscoverParams) {
+  const yearParam =
+    params.year && params.mediaType === "movie"
+      ? { primary_release_year: params.year }
+      : params.year
+        ? { first_air_date_year: params.year }
+        : {};
+
   const res = await client.get(`/discover/${params.mediaType}`, {
     params: {
       watch_region: params.watchRegion,
       with_watch_providers: params.withWatchProviders,
       with_genres: params.withGenres,
       with_watch_monetization_types: params.withWatchProviders ? "flatrate" : undefined,
-      sort_by: "popularity.desc",
+      ...yearParam,
+      sort_by: params.sortBy || "popularity.desc",
       page: params.page || 1,
     },
   });

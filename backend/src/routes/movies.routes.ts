@@ -2,6 +2,7 @@ import { Router } from "express";
 import { listTrendingMovies } from "../services/movies";
 import { getMovieDetailById } from "../services/detail";
 import { serializeMovieListItem, serializeMovieDetail } from "../serializers";
+import { optionalAuth } from "../middleware/auth";
 import { HttpError } from "../middleware/errorHandler";
 import { env } from "../config/env";
 
@@ -13,12 +14,12 @@ moviesRouter.get("/movies/trending", async (req, res) => {
   res.json({ results: movies.map(serializeMovieListItem) });
 });
 
-moviesRouter.get("/movie/:id", async (req, res) => {
+moviesRouter.get("/movie/:id", optionalAuth, async (req, res) => {
   const id = Number(req.params.id);
   const country = String(req.query.country || env.defaultCountry);
   if (!Number.isFinite(id)) throw new HttpError(400, "id inválido");
 
-  const bundle = await getMovieDetailById(id, country);
+  const bundle = await getMovieDetailById(id, country, req.userId ?? null);
   if (!bundle) throw new HttpError(404, "Película no encontrada");
   res.json(serializeMovieDetail(bundle));
 });

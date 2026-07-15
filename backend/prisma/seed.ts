@@ -1,6 +1,7 @@
 import { PrismaClient } from "@prisma/client";
 import { TMDB_GENRES } from "../src/data/genres";
 import { PLATFORMS } from "../src/data/platforms";
+import { COUNTRIES, PLATFORM_AVAILABILITY } from "../src/data/countries";
 
 const prisma = new PrismaClient();
 
@@ -28,6 +29,32 @@ async function main() {
     });
   }
   console.log(`Plataformas seedeadas: ${PLATFORMS.length}`);
+
+  for (const c of COUNTRIES) {
+    await prisma.country.upsert({
+      where: { code: c.code },
+      update: { name: c.name },
+      create: { code: c.code, name: c.name },
+    });
+  }
+  console.log(`Países seedeados: ${COUNTRIES.length}`);
+
+  let availabilityCount = 0;
+  for (const [slug, countryCodes] of Object.entries(PLATFORM_AVAILABILITY)) {
+    const platform = await prisma.platform.findUnique({ where: { slug } });
+    if (!platform) continue;
+    for (const code of countryCodes) {
+      const country = await prisma.country.findUnique({ where: { code } });
+      if (!country) continue;
+      await prisma.platformAvailability.upsert({
+        where: { platformId_countryId: { platformId: platform.id, countryId: country.id } },
+        update: {},
+        create: { platformId: platform.id, countryId: country.id },
+      });
+      availabilityCount++;
+    }
+  }
+  console.log(`Disponibilidad plataforma×país seedeada: ${availabilityCount}`);
 }
 
 main()

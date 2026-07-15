@@ -52,6 +52,8 @@ export function serializeMovieDetail(bundle: {
   trailerKey: string | null;
   similar: any[];
   providers: any[];
+  ratingSummary: { average: number; count: number };
+  myRating: number | null;
 }) {
   const { movie } = bundle;
   return {
@@ -66,7 +68,9 @@ export function serializeMovieDetail(bundle: {
     genres: (movie.genres || []).map((mg: any) => ({ id: mg.genre.tmdbId, name: mg.genre.name })),
     year: movie.releaseDate ? String(movie.releaseDate.getFullYear()) : null,
     runtimeMinutes: movie.runtime,
+    // vote_average = TMDB (no se reemplaza); nowseeRating = puntuación propia.
     vote_average: movie.rating,
+    nowseeRating: { average: bundle.ratingSummary.average, count: bundle.ratingSummary.count, myRating: bundle.myRating },
     cast: serializeCast(bundle.cast),
     recommendations: bundle.similar.map(serializeMovieListItem),
   };
@@ -78,6 +82,8 @@ export function serializeTvDetail(bundle: {
   trailerKey: string | null;
   similar: any[];
   providers: any[];
+  ratingSummary: { average: number; count: number };
+  myRating: number | null;
 }) {
   const { tvShow } = bundle;
   return {
@@ -93,6 +99,7 @@ export function serializeTvDetail(bundle: {
     year: tvShow.firstAirDate ? String(tvShow.firstAirDate.getFullYear()) : null,
     runtimeMinutes: null,
     vote_average: tvShow.rating,
+    nowseeRating: { average: bundle.ratingSummary.average, count: bundle.ratingSummary.count, myRating: bundle.myRating },
     cast: serializeCast(bundle.cast),
     recommendations: bundle.similar.map(serializeTvListItem),
   };
