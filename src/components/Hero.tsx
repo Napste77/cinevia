@@ -3,7 +3,6 @@ import { View, Text, Image, Pressable, StyleSheet } from "react-native";
 import { LinearGradient } from "expo-linear-gradient";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { TrendingItem } from "../types";
-import { backdropUrl } from "../api/tmdb";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 
@@ -19,10 +18,10 @@ export default function Hero({
   onOpenDetail: () => void;
 }) {
   const { isDesktop } = useResponsive();
-  // En mobile pedimos un tamaño más chico: el Hero nunca mide más de ~430px
-  // de ancho ahí, así que bajar de w1280 a w780 corta bastante el peso de
-  // la imagen más grande de la página (mejora directa en LCP).
-  const uri = backdropUrl(item.backdrop_path, isDesktop ? "w1280" : "w780");
+  // En mobile pedimos la versión más liviana que ya resuelve la API (w780):
+  // el Hero nunca mide más de ~430px de ancho ahí, así que evitamos bajar
+  // la imagen más grande de la página completa (mejora directa en LCP).
+  const uri = isDesktop ? item.backdrop_path : item.backdrop_path_mobile || item.backdrop_path;
   const height = isDesktop ? 560 : 420;
 
   return (

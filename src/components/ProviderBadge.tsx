@@ -1,22 +1,17 @@
 import React, { useState } from "react";
 import { View, Text, Image, Pressable, StyleSheet, Platform } from "react-native";
-import { Provider } from "../types";
+import { ResolvedProvider } from "../types";
 import { colors, radii, fonts } from "../theme";
-import { getPlatformByName } from "../config/streamingPlatforms";
 
 export default function ProviderBadge({
   provider,
-  url,
   onPress,
 }: {
-  provider: Provider;
-  /** URL resuelta a donde debe llevar el botón (web: se renderiza como <a href>). */
-  url: string;
+  provider: ResolvedProvider;
   onPress?: () => void;
 }) {
   const [hovered, setHovered] = useState(false);
-  const platform = getPlatformByName(provider.provider_name);
-  const accentColor = platform?.color || colors.primary;
+  const accentColor = provider.color || colors.primary;
 
   return (
     <Pressable
@@ -26,19 +21,16 @@ export default function ProviderBadge({
       // sobre todo dentro de una PWA instalada). En nativo seguimos
       // usando onPress + Linking.openURL (ver DetailScreen).
       {...(Platform.OS === "web"
-        ? { href: url, hrefAttrs: { rel: "noopener noreferrer" } }
+        ? { href: provider.url, hrefAttrs: { rel: "noopener noreferrer" } }
         : { onPress })}
       onHoverIn={() => setHovered(true)}
       onHoverOut={() => setHovered(false)}
       style={[styles.wrap, hovered && { borderColor: accentColor }]}
     >
       <View style={[styles.accent, { backgroundColor: accentColor }]} />
-      <Image
-        source={{ uri: `https://image.tmdb.org/t/p/w200${provider.logo_path}` }}
-        style={styles.logo}
-      />
+      {provider.logo && <Image source={{ uri: provider.logo }} style={styles.logo} />}
       <Text style={styles.name} numberOfLines={1}>
-        {provider.provider_name}
+        {provider.providerName}
       </Text>
     </Pressable>
   );

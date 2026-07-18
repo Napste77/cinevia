@@ -1,0 +1,167 @@
+import { prisma } from "../db/prisma";
+import { tmdbDiscover, tmdbGetDetail } from "../providers/tmdb";
+import { toTvUpsertData, extractGenreIds } from "./mapping";
+import { attachTvGenres } from "./genres";
+import { getPlatformIdByTmdbId } from "./platforms";
+import { STALE_TTL_MS, isStale } from "../config/sync";
+import { env } from "../config/env";
+
+const PAGE_SIZE = 20;
+
+async function upsertTv(raw: any, imdbId?: string | null) {
+  const data = toTvUpsertData(raw, imdbId);
+  const tvShow = await prisma.tVShow.upsert({
+    where: { tmdbId: raw.id },
+    update: { ...data, lastSync: new Date(), syncStatus: "synced", lastError: null },
+    create: { tmdbId: raw.id, ...data, lastSync: new Date(), syncStatus: "synced" },
+  });
+  await attachTvGenres(tvShow.id, extractGenreIds(raw));
+  return tvShow;
+}
+
+export async function getOrFetchTv(tmdbId: number) {
+  const existing = await prisma.tVShow.findUnique({
+    where: { tmdbId },
+    include: { genres: { include: { genre: true } } },
+  });
+
+  if (existing && !isStale(existing.lastSync, STALE_TTL_MS.content)) {
+    return existing;
+  }
+
+  try {
+    const { detail, externalIds } = await tmdbGetDetail("tv", tmdbId);
+    const tvShow = await upsertTv(detail, externalIds.imdb_id);
+    return prisma.tVShow.findUnique({
+      where: { id: tvShow.id },
+      include: { genres: { include: { genre: true } } },
+    });
+  } catch (e: any) {
+    if (existing) {
+      await prisma.tVShow.update({
+        where: { id: existing.id },
+        data: { syncStatus: "error", lastError: String(e?.message || e) },
+      });
+      return existing;
+    }
+    throw e;
+  }
+}
+
+export async function listTrendingTv(page = 1, pageSize = PAGE_SIZE) {
+  const count = await prisma.tVShow.count();
+  if (count === 0) {
+    await bootstrapTrendingTv();
+  }
+
+  return prisma.tVShow.findMany({
+    orderBy: { popularity: "desc" },
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    include: { genres: { include: { genre: true } } },
+  });
+}
+
+export async function bootstrapTrendingTv() {
+  const data = await tmdbDiscover({ mediaType: "tv", watchRegion: env.defaultCountry, page: 1 });
+  for (const raw of data.results) {
+    await upsertTv(raw);
+  }
+}
+
+export interface DiscoverTvParams {
+  genreTmdbId?: number;
+  platformTmdbId?: number;
+  year?: number;
+  sortBy?: "popularity" | "newest";
+  country?: string;
+  page?: number;
+  pageSize?: number;
+}
+
+/** Ver movies.ts::discoverMovies — misma estrategia de filtros combinables. */
+export async function discoverTv(params: DiscoverTvParams) {
+  const page = params.page || 1;
+  const pageSize = params.pageSize || PAGE_SIZE;
+  const country = params.country || env.defaultCountry;
+  const orderBy =
+    params.sortBy === "newest" ? { firstAirDate: "desc" as const } : { popularity: "desc" as const };
+
+  let platformId: number | null = null;
+  if (params.platformTmdbId) {
+    platformId = await getPlatformIdByTmdbId(params.platformTmdbId);
+    if (!platformId) return [];
+  }
+
+  const baseWhere: any = {};
+  if (params.genreTmdbId) {
+    baseWhere.genres = { some: { genre: { tmdbId: params.genreTmdbId } } };
+  }
+  if (params.year) {
+    baseWhere.firstAirDate = {
+      gte: new Date(Date.UTC(params.year, 0, 1)),
+      lt: new Date(Date.UTC(params.year + 1, 0, 1)),
+    };
+  }
+
+  const platformContentIds = async () => {
+    const links = await prisma.streamingLink.findMany({
+      where: { contentType: "tv", platformId: platformId!, country },
+      select: { contentId: true },
+    });
+    return links.map((l) => l.contentId);
+  };
+
+  const countMatching = async () => {
+    if (!platformId) return prisma.tVShow.count({ where: baseWhere });
+    const ids = await platformContentIds();
+    if (ids.length === 0) return 0;
+    return prisma.tVShow.count({ where: { ...baseWhere, id: { in: ids } } });
+  };
+
+  const total = await countMatching();
+
+  if (total < page * pageSize) {
+    const data = await tmdbDiscover({
+      mediaType: "tv",
+      watchRegion: country,
+      withGenres: params.genreTmdbId,
+      withWatchProviders: params.platformTmdbId,
+      year: params.year,
+      page,
+    });
+    for (const raw of data.results) {
+      const tvShow = await upsertTv(raw);
+      if (platformId) {
+        await prisma.streamingLink.upsert({
+          where: {
+            content_platform_country: {
+              contentType: "tv",
+              contentId: tvShow.id,
+              platformId,
+              country,
+            },
+          },
+          update: {},
+          create: { contentType: "tv", contentId: tvShow.id, platformId, country, verified: false },
+        });
+      }
+    }
+  }
+
+  const where = { ...baseWhere } as any;
+  if (platformId) {
+    const ids = await platformContentIds();
+    where.id = { in: ids.length ? ids : [-1] };
+  }
+
+  return prisma.tVShow.findMany({
+    where,
+    orderBy,
+    skip: (page - 1) * pageSize,
+    take: pageSize,
+    include: { genres: { include: { genre: true } } },
+  });
+}
+
+export { upsertTv };

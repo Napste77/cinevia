@@ -5,30 +5,22 @@ export interface TrendingItem {
   media_type: MediaType;
   title: string;
   overview: string;
+  /** Ya viene como URL lista para usar (la API de NowSee resuelve la fuente de la imagen). */
   poster_path: string | null;
   backdrop_path: string | null;
+  /** Versión más liviana de backdrop_path, pensada solo para el Hero en mobile. */
+  backdrop_path_mobile?: string | null;
   vote_average: number;
   release_date?: string;
 }
 
-export interface Provider {
-  provider_id: number;
-  provider_name: string;
-  logo_path: string;
-}
-
-export interface ProvidersByCountry {
-  flatrate?: Provider[];
-  rent?: Provider[];
-  buy?: Provider[];
-  link: string;
-}
-
-export interface VideoResult {
-  key: string;
-  site: string;
-  type: string;
-  official: boolean;
+/** Plataforma de streaming donde está disponible un título, con el deep link ya resuelto por el backend. */
+export interface ResolvedProvider {
+  providerName: string;
+  logo: string | null;
+  color: string | null;
+  url: string;
+  verified: boolean;
 }
 
 export interface Genre {
@@ -43,6 +35,13 @@ export interface CastMember {
   profile_path: string | null;
 }
 
+/** Calificación propia de NowSee (1-10) — separada del vote_average de TMDB. */
+export interface NowSeeRating {
+  average: number;
+  count: number;
+  myRating: number | null;
+}
+
 export interface DetailData {
   id: number;
   media_type: MediaType;
@@ -51,13 +50,23 @@ export interface DetailData {
   poster_path: string | null;
   backdrop_path: string | null;
   trailerKey: string | null;
-  providers: ProvidersByCountry | null;
+  providers: ResolvedProvider[];
   genres: Genre[];
   year: string | null;
   runtimeMinutes: number | null;
   vote_average: number;
+  nowseeRating: NowSeeRating;
   cast: CastMember[];
   recommendations: TrendingItem[];
+}
+
+export interface Platform {
+  id: number;
+  slug: string;
+  name: string;
+  logo: string | null;
+  color: string | null;
+  website: string | null;
 }
 
 /** Filas de género que arma el Home (usa IDs de género de TMDB para movie). */
