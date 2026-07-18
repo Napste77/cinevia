@@ -1,0 +1,29 @@
+services:
+  - type: web
+    name: nowsee-api
+    runtime: node
+    rootDir: backend
+    plan: free
+    buildCommand: npm install && npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        sync: false
+      - key: TMDB_API_KEY
+        sync: false
+      - key: STREAMING_AVAILABILITY_API_KEY
+        sync: false
+      - key: DEFAULT_COUNTRY
+        value: AR
+      - key: JWT_SECRET
+        generateValue: true
+      - key: SYNC_SECRET
+        generateValue: true
+      - key: ACCESS_TOKEN_TTL
+        value: 15m
+      - key: REFRESH_TOKEN_TTL_DAYS
+        value: "30"
+      - key: ENABLE_INTERNAL_CRON
+        value: "false"
+      - key: GEOIP_BASE_URL
+        value: http://ip-api.com/json

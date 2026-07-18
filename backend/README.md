@@ -67,6 +67,7 @@ Todos devuelven `{ results: [...] }` salvo `/movie/:id` y `/tv/:id`, que devuelv
 - `GET /discover?type=movie|tv&genre=<id>&provider=<id>&country=AR&page=1`
 - `GET /providers?type=movie|tv&id=<id>&country=AR`
 - `POST /internal/sync/:job` (`daily`|`weekly`|`monthly`), header `X-Sync-Secret`
+- `POST /internal/seed` (carga géneros/plataformas/países una vez), header `X-Sync-Secret`
 
 ## Cómo funciona el "crece con el uso" (descubrimiento automático)
 
@@ -97,6 +98,52 @@ según lo que permita el hosting:
    curl -X POST https://tu-api.com/internal/sync/weekly  -H "X-Sync-Secret: <SYNC_SECRET>"   # 1x/semana
    curl -X POST https://tu-api.com/internal/sync/monthly -H "X-Sync-Secret: <SYNC_SECRET>"   # 1x/mes
    ```
+
+## Deploy en Render (gratis, recomendado si tu hosting no soporta Node.js)
+
+Si tu hosting solo tiene MySQL (ej. un plan compartido de Hostinger sin
+sección "Node.js"), el backend puede correr gratis en Render y conectarse
+a esa base por Internet — no hace falta que el hosting soporte Node.
+
+1. **Habilitar acceso remoto a la base** desde el panel de tu hosting
+   (en Hostinger: hPanel → Bases de datos → Remote MySQL). Ahí te va a
+   mostrar un host tipo `srv###.hstgr.io` — anotalo, es el `DATABASE_URL`.
+   Autorizá la IP de Render cuando la tengas (Render no publica IPs fijas
+   en el plan free; si tu panel exige una IP puntual y no acepta rangos,
+   puede hacer falta pasar a un plan pago de Render con IP saliente fija,
+   o usar `%` / rango amplio si tu hosting lo permite — revisar las
+   opciones que ofrezca tu panel).
+2. En [render.com](https://render.com), crear cuenta (gratis, sin tarjeta)
+   y **New → Blueprint**, apuntando al repo de GitHub — el `render.yaml`
+   de la raíz ya define el servicio (`rootDir: backend`, build/start
+   commands). Si preferís no usar Blueprint: **New → Web Service**, mismo
+   repo, "Root Directory" = `backend`, build command
+   `npm install && npm run build`, start command `npm start`.
+3. Completar las variables de entorno marcadas `sync: false` en el
+   dashboard de Render (no van en el `render.yaml` por seguridad):
+   - `DATABASE_URL` → `mysql://usuario:password@host:3306/nombre_base`
+     (los datos que anotaste en el paso 1)
+   - `TMDB_API_KEY`
+   - `STREAMING_AVAILABILITY_API_KEY` (opcional, se puede dejar vacía)
+
+   `JWT_SECRET` y `SYNC_SECRET` los genera Render solos
+   (`generateValue: true` en el blueprint) — andá a la pestaña
+   "Environment" del servicio para verlos si los necesitás.
+4. Al desplegar, `npm start` corre `prisma migrate deploy` automáticamente
+   antes de levantar el servidor — las tablas se crean solas, no hace
+   falta terminal.
+5. Cargar el catálogo fijo (géneros/plataformas/países) una sola vez,
+   sin necesitar shell (el plan free de Render no la incluye):
+   ```bash
+   curl -X POST https://tu-servicio.onrender.com/internal/seed \
+     -H "X-Sync-Secret: <el valor generado en el paso 3>"
+   ```
+6. El plan free de Render "duerme" el servicio tras 15 minutos sin
+   tráfico (el primer request después tarda unos segundos en "despertar").
+   Para los jobs de sincronización, configurar un cron externo gratuito
+   (ej. [cron-job.org](https://cron-job.org)) que pegue a
+   `/internal/sync/daily|weekly|monthly` — así de paso el cron mantiene el
+   servicio despierto.
 
 ## Deploy en Hostinger
 
