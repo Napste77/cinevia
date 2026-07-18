@@ -1,7 +1,14 @@
 import React, { useState } from "react";
 import { View, Text, Image, Pressable, StyleSheet, Platform } from "react-native";
 import { ResolvedProvider } from "../types";
+import { isCapacitorNative } from "../api/deepLinks";
 import { colors, radii, fonts } from "../theme";
+
+// Ver deepLinks.ts: adentro del WebView de Capacitor, Platform.OS sigue
+// siendo "web" pero un <a href> normal navegaría el WebView de la app
+// fuera de sí misma — ahí hace falta el onPress (que abre con el plugin
+// Browser) en vez del anchor.
+const useAnchor = Platform.OS === "web" && !isCapacitorNative();
 
 export default function ProviderBadge({
   provider,
@@ -18,9 +25,9 @@ export default function ProviderBadge({
       // En web renderizamos un <a href> real: es la forma más confiable de
       // navegar en cualquier navegador/dispositivo (un click programático
       // vía JS puede quedar bloqueado en algunos Chrome/Safari mobile,
-      // sobre todo dentro de una PWA instalada). En nativo seguimos
-      // usando onPress + Linking.openURL (ver DetailScreen).
-      {...(Platform.OS === "web"
+      // sobre todo dentro de una PWA instalada). En nativo (y en el WebView
+      // de Capacitor) usamos onPress + Linking/Browser (ver deepLinks.ts).
+      {...(useAnchor
         ? { href: provider.url, hrefAttrs: { rel: "noopener noreferrer" } }
         : { onPress })}
       onHoverIn={() => setHovered(true)}

@@ -1,0 +1,7 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">NowSee</string>
+    <string name="title_activity_main">NowSee</string>
+    <string name="package_name">com.nastex.nowsee</string>
+    <string name="custom_url_scheme">com.nastex.nowsee</string>
+</resources>

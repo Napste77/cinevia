@@ -69,7 +69,12 @@
     <!-- The root element for your Expo app. -->
     <div id="root"></div>
     <script>
-      if ("serviceWorker" in navigator) {
+      // Adentro del WebView de Capacitor los assets ya viven empaquetados
+      // en el APK (no hay nada que "cachear offline" de más), y Capacitor
+      // inyecta su propio objeto `window.Capacitor` antes de que corra
+      // este script — si está presente, no registramos el service worker.
+      var isCapacitorApp = !!(window.Capacitor && window.Capacitor.isNativePlatform && window.Capacitor.isNativePlatform());
+      if (!isCapacitorApp && "serviceWorker" in navigator) {
         window.addEventListener("load", function () {
           navigator.serviceWorker.register("/sw.js").catch(function (err) {
             console.warn("SW registration failed", err);

@@ -2,12 +2,16 @@ import React from "react";
 import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useInstallPrompt } from "../hooks/useInstallPrompt";
+import { isCapacitorNative } from "../api/deepLinks";
 import { colors, fonts, radii } from "../theme";
 
 export default function InstallAppButton() {
   const { canInstall, isIos, installed, promptInstall, showManualFallback } = useInstallPrompt();
 
-  if (Platform.OS !== "web") return null;
+  // Adentro de la APK de Capacitor la app ya está instalada por definición
+  // (Platform.OS sigue dando "web" ahí, ver deepLinks.ts) — no tiene
+  // sentido ofrecer instalarla ni mostrar ningún mensaje al respecto.
+  if (Platform.OS !== "web" || isCapacitorNative()) return null;
 
   if (installed) {
     return (

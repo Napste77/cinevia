@@ -1,7 +1,7 @@
-import React, { Suspense, lazy } from "react";
+import React, { Suspense, lazy, useEffect } from "react";
 import { View, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
-import { NavigationContainer, LinkingOptions } from "@react-navigation/native";
+import { NavigationContainer, LinkingOptions, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
   useFonts as useSora,
@@ -19,6 +19,7 @@ import { colors } from "./src/theme";
 import { AuthProvider } from "./src/context/AuthContext";
 import { RegionProvider } from "./src/context/RegionContext";
 import { FavoritesProvider } from "./src/context/FavoritesContext";
+import { isCapacitorNative } from "./src/api/deepLinks";
 
 // Solo Home viaja en el bundle inicial (es la pantalla de entrada, así que
 // cargarla eager no cuesta nada extra). El resto se separa en chunks
@@ -66,6 +67,45 @@ export default function App() {
     Inter_500Medium,
     Inter_600SemiBold,
   });
+  const navigationRef = useNavigationContainerRef();
+
+  // Adentro del APK de Capacitor: el botón físico/gesto "Atrás" de Android
+  // no sabe nada de react-navigation por su cuenta (a diferencia de web,
+  // donde `linking` ya lo resuelve vía la History API) — hay que conectarlo
+  // a mano al historial interno, y solo cerrar la app cuando no queda nada
+  // atrás. También fija el color de la barra de estado nativa al del tema.
+  useEffect(() => {
+    if (!isCapacitorNative()) return;
+    let cancelled = false;
+    let backButtonSub: { remove: () => void } | undefined;
+    (async () => {
+      const [{ App: CapacitorApp }, { StatusBar: CapacitorStatusBar, Style }, { SplashScreen }] =
+        await Promise.all([
+          import("@capacitor/app"),
+          import("@capacitor/status-bar"),
+          import("@capacitor/splash-screen"),
+        ]);
+      const sub = await CapacitorApp.addListener("backButton", () => {
+        if (navigationRef.isReady() && navigationRef.canGoBack()) {
+          navigationRef.goBack();
+        } else {
+          CapacitorApp.exitApp();
+        }
+      });
+      if (cancelled) {
+        sub.remove();
+        return;
+      }
+      backButtonSub = sub;
+      await CapacitorStatusBar.setStyle({ style: Style.Dark });
+      await CapacitorStatusBar.setBackgroundColor({ color: "#0c1324" });
+      await SplashScreen.hide();
+    })();
+    return () => {
+      cancelled = true;
+      backButtonSub?.remove();
+    };
+  }, [navigationRef]);
 
   // En web no bloqueamos el render esperando las fuentes: el navegador ya
   // muestra el texto con la fuente de sistema como fallback y hace el swap
@@ -80,7 +120,7 @@ export default function App() {
     <AuthProvider>
       <RegionProvider>
         <FavoritesProvider>
-          <NavigationContainer linking={linking}>
+          <NavigationContainer ref={navigationRef} linking={linking}>
             <StatusBar style="light" />
             <Suspense fallback={<View style={{ flex: 1, backgroundColor: colors.surface }} />}>
               <Stack.Navigator screenOptions={{ headerShown: false }}>
