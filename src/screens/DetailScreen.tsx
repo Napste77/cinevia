@@ -244,6 +244,8 @@ export default function DetailScreen({ route, navigation }: any) {
                       country,
                     })
                   }
+                  isFavorite={isFavorite(item)}
+                  onToggleFavorite={() => toggleFavorite(item)}
                 />
               )}
             />
