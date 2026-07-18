@@ -1,11 +1,6 @@
 import React, { useEffect, useMemo, useState } from "react";
 import { ScrollView, View, StyleSheet } from "react-native";
-import {
-  getTrendingByCountry,
-  getByPlatform,
-  getByGenre,
-  getPlatforms,
-} from "../api/nowsee";
+import { getTrendingByCountry, getHomeRows } from "../api/nowsee";
 import { TrendingItem, Platform } from "../types";
 import { HOME_PLATFORM_ROWS, GENRE_ROWS } from "../config/catalog";
 import AppShell from "../navigation/AppShell";
@@ -18,6 +13,9 @@ import { useRegion } from "../context/RegionContext";
 import { colors, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 
+const PROVIDER_IDS = HOME_PLATFORM_ROWS.map((p) => p.providerId);
+const GENRE_IDS = GENRE_ROWS.map((g) => g.genreId);
+
 export default function HomeScreen({ navigation }: any) {
   const { country } = useRegion();
   const { isDesktop } = useResponsive();
@@ -25,28 +23,12 @@ export default function HomeScreen({ navigation }: any) {
 
   const [trendingMovies, setTrendingMovies] = useState<TrendingItem[]>([]);
   const [trendingSeries, setTrendingSeries] = useState<TrendingItem[]>([]);
-  const [platformRows, setPlatformRows] = useState<Record<string, TrendingItem[]>>({});
-  const [genreRowsData, setGenreRowsData] = useState<Record<string, TrendingItem[]>>({});
+  const [platformRows, setPlatformRows] = useState<Record<number, TrendingItem[]>>({});
+  const [genreRowsData, setGenreRowsData] = useState<Record<number, TrendingItem[]>>({});
   const [availablePlatforms, setAvailablePlatforms] = useState<Platform[] | null>(null);
   const [loadingMovies, setLoadingMovies] = useState(true);
   const [loadingSeries, setLoadingSeries] = useState(true);
   const [loadingRows, setLoadingRows] = useState(true);
-
-  // Plataformas que realmente operan en la región activa (punto 1 del
-  // spec de geolocalización) — filtra las filas de plataforma del Home.
-  useEffect(() => {
-    let cancelled = false;
-    getPlatforms(country)
-      .then((platforms) => {
-        if (!cancelled) setAvailablePlatforms(platforms);
-      })
-      .catch(() => {
-        if (!cancelled) setAvailablePlatforms(null);
-      });
-    return () => {
-      cancelled = true;
-    };
-  }, [country]);
 
   const visiblePlatformRows = useMemo(
     () =>
@@ -95,47 +77,30 @@ export default function HomeScreen({ navigation }: any) {
     };
   }, [country]);
 
-  // Las filas de plataforma/género (14 requests) se disparan recién
-  // cuando ya resolvió la de películas: así no compiten por las conexiones
+  // Las 15 filas restantes (plataformas de la región + una fila por
+  // provider/género) se piden en UN solo request, recién cuando ya
+  // resolvió la de películas: así no compiten por las conexiones
   // concurrentes del navegador con el contenido crítico de arriba (Hero +
   // primera fila), que es lo que de verdad define el LCP percibido.
   useEffect(() => {
-    if (loadingMovies || availablePlatforms === null) return;
+    if (loadingMovies) return;
     let cancelled = false;
-    (async () => {
-      setLoadingRows(true);
-      try {
-        const [platformResults, genreResults] = await Promise.all([
-          Promise.allSettled(
-            visiblePlatformRows.map((p) => getByPlatform(country, p.providerId, "movie"))
-          ),
-          Promise.allSettled(
-            GENRE_ROWS.map((g) => getByGenre(country, g.genreId, "movie"))
-          ),
-        ]);
+    setLoadingRows(true);
+    getHomeRows(country, PROVIDER_IDS, GENRE_IDS)
+      .then((bundle) => {
         if (cancelled) return;
-
-        const nextPlatformRows: Record<string, TrendingItem[]> = {};
-        platformResults.forEach((result, i) => {
-          nextPlatformRows[visiblePlatformRows[i].key] =
-            result.status === "fulfilled" ? result.value : [];
-        });
-        setPlatformRows(nextPlatformRows);
-
-        const nextGenreRows: Record<string, TrendingItem[]> = {};
-        genreResults.forEach((result, i) => {
-          nextGenreRows[GENRE_ROWS[i].key] =
-            result.status === "fulfilled" ? result.value : [];
-        });
-        setGenreRowsData(nextGenreRows);
-      } finally {
+        setAvailablePlatforms(bundle.platforms);
+        setPlatformRows(bundle.platformRows);
+        setGenreRowsData(bundle.genreRows);
+      })
+      .catch((e) => console.error("Error cargando filas del Home", e))
+      .finally(() => {
         if (!cancelled) setLoadingRows(false);
-      }
-    })();
+      });
     return () => {
       cancelled = true;
     };
-  }, [country, loadingMovies, availablePlatforms, visiblePlatformRows]);
+  }, [country, loadingMovies]);
 
   const heroItem = useMemo(
     () => trendingMovies[0] || trendingSeries[0] || null,
@@ -197,7 +162,7 @@ export default function HomeScreen({ navigation }: any) {
             <Row
               key={platform.key}
               title={platform.label}
-              items={platformRows[platform.key] || []}
+              items={platformRows[platform.providerId] || []}
               loading={loadingRows}
               onItemPress={openDetail}
               onSeeAllPress={() => openCategory(platform.key)}
@@ -209,7 +174,7 @@ export default function HomeScreen({ navigation }: any) {
             <Row
               key={genre.key}
               title={genre.label}
-              items={genreRowsData[genre.key] || []}
+              items={genreRowsData[genre.genreId] || []}
               loading={loadingRows}
               onItemPress={openDetail}
               onSeeAllPress={() => openCategory(genre.key)}
