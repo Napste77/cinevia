@@ -74,29 +74,13 @@ async function runSyncContentMedia(
     });
   }
 
-  // --- Imágenes adicionales (solo referencias, nunca el binario) ---
-  const images = await tmdbGetImages(mediaType, tmdbId).catch(() => null);
-  if (images) {
-    await prisma.image.deleteMany({ where: { contentType, contentId } });
-    const rows = [
-      ...images.posters.slice(0, 5).map((i: any) => ({ type: "poster" as const, ...i })),
-      ...images.backdrops.slice(0, 5).map((i: any) => ({ type: "backdrop" as const, ...i })),
-      ...images.logos.slice(0, 5).map((i: any) => ({ type: "logo" as const, ...i })),
-    ];
-    if (rows.length > 0) {
-      await prisma.image.createMany({
-        data: rows.map((r) => ({
-          contentType,
-          contentId,
-          type: r.type,
-          filePath: r.file_path,
-          width: r.width ?? null,
-          height: r.height ?? null,
-          language: r.iso_639_1 ?? null,
-        })),
-      });
-    }
-  }
+  // --- Imágenes adicionales (solo referencias, nunca el binario): nada en
+  // la respuesta al usuario las lee todavía, así que se resuelven en
+  // background para no sumarle a la ficha una llamada a TMDB más de la
+  // que ya necesita para cast/tráiler/recomendaciones.
+  syncImages(contentType, contentId, mediaType, tmdbId).catch((e) =>
+    console.error(`Error sincronizando imágenes de ${contentType} ${contentId}:`, e)
+  );
 
   // --- Recomendaciones -> SimilarContent (guarda también el contenido
   // recomendado, si todavía no existía) ---
@@ -130,6 +114,31 @@ async function runSyncContentMedia(
   } else {
     await prisma.tVShow.update({ where: { id: contentId }, data: { lastMediaSync: new Date() } });
   }
+}
+
+async function syncImages(contentType: ContentType, contentId: number, mediaType: "movie" | "tv", tmdbId: number) {
+  const images = await tmdbGetImages(mediaType, tmdbId).catch(() => null);
+  if (!images) return;
+
+  await prisma.image.deleteMany({ where: { contentType, contentId } });
+  const rows = [
+    ...images.posters.slice(0, 5).map((i: any) => ({ type: "poster" as const, ...i })),
+    ...images.backdrops.slice(0, 5).map((i: any) => ({ type: "backdrop" as const, ...i })),
+    ...images.logos.slice(0, 5).map((i: any) => ({ type: "logo" as const, ...i })),
+  ];
+  if (rows.length === 0) return;
+
+  await prisma.image.createMany({
+    data: rows.map((r) => ({
+      contentType,
+      contentId,
+      type: r.type,
+      filePath: r.file_path,
+      width: r.width ?? null,
+      height: r.height ?? null,
+      language: r.iso_639_1 ?? null,
+    })),
+  });
 }
 
 export async function getCastFor(contentType: ContentType, contentId: number) {
