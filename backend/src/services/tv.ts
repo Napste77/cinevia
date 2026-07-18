@@ -106,12 +106,18 @@ export async function discoverTv(params: DiscoverTvParams) {
     };
   }
 
-  const platformContentIds = async () => {
+  // Misma optimización que en movies.ts::discoverMovies — evitar pedir
+  // la lista de IDs por plataforma dos veces (count + where final).
+  let cachedPlatformIds: number[] | null = null;
+  const platformContentIds = async (): Promise<number[]> => {
+    if (cachedPlatformIds !== null) return cachedPlatformIds;
     const links = await prisma.streamingLink.findMany({
       where: { contentType: "tv", platformId: platformId!, country },
       select: { contentId: true },
     });
-    return links.map((l) => l.contentId);
+    const ids: number[] = links.map((l: { contentId: number }) => l.contentId);
+    cachedPlatformIds = ids;
+    return ids;
   };
 
   const countMatching = async () => {
@@ -132,23 +138,28 @@ export async function discoverTv(params: DiscoverTvParams) {
       year: params.year,
       page,
     });
-    for (const raw of data.results) {
-      const tvShow = await upsertTv(raw);
-      if (platformId) {
-        await prisma.streamingLink.upsert({
-          where: {
-            content_platform_country: {
-              contentType: "tv",
-              contentId: tvShow.id,
-              platformId,
-              country,
+    // Misma optimización que en movies.ts::discoverMovies — resolver los
+    // upserts en paralelo en vez de uno por uno en serie.
+    await Promise.all(
+      data.results.map(async (raw: any) => {
+        const tvShow = await upsertTv(raw);
+        if (platformId) {
+          await prisma.streamingLink.upsert({
+            where: {
+              content_platform_country: {
+                contentType: "tv",
+                contentId: tvShow.id,
+                platformId,
+                country,
+              },
             },
-          },
-          update: {},
-          create: { contentType: "tv", contentId: tvShow.id, platformId, country, verified: false },
-        });
-      }
-    }
+            update: {},
+            create: { contentType: "tv", contentId: tvShow.id, platformId, country, verified: false },
+          });
+        }
+      })
+    );
+    if (platformId) cachedPlatformIds = null; // se insertaron links nuevos, invalidar el cache local
   }
 
   const where = { ...baseWhere } as any;

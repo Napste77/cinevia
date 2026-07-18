@@ -225,11 +225,52 @@ del código)**:
 Todo el flujo de build (incluidos estos dos pasos manuales) está
 documentado en `README.md`, sección "Capacitor / APK de Android".
 
+## 3.3. Ronda siguiente: performance del backend (queries redundantes) + causa raíz probable de la lentitud reportada
+
+Pedido explícito del usuario: "la página está lenta" (después del batch de
+performance de la sección 3.1, que el usuario todavía no había confirmado
+haber probado). Auditoría de `backend/src/services/movies.ts`,
+`tv.ts` y `platforms.ts` (los que arma `GET /home/rows`, ver 3.1):
+
+| Problema encontrado | Fix aplicado |
+|---|---|
+| `discoverMovies`/`discoverTv` pedían la lista de IDs de `streamingLink` por plataforma **dos veces** por request (una para el `count`, otra para el `where` del `findMany` final) — cada una es un viaje de red a la MySQL remota de Hostinger | Se cachea el resultado en una variable local (`cachedPlatformIds`) dentro de la misma llamada y se reusa; se invalida solo si el fallback a TMDB insertó `streamingLink`s nuevos |
+| `getPlatformIdByTmdbId`/`listPlatformsByCountry` se pegaban a la DB en cada una de las hasta 14 filas del Home (plataformas casi no cambian, solo las toca el sync mensual) | Cache en memoria del proceso con TTL de 10 min en `backend/src/services/platforms.ts` |
+| Fallback a TMDB de `discoverMovies`/`discoverTv` (cuando la DB no tiene suficientes resultados todavía) hacía `await upsertMovie/upsertTv` **uno por uno en serie** — hasta 20 viajes secuenciales a la DB | Se resuelven en paralelo con `Promise.all`, mismo patrón que ya se había aplicado en `services/search.ts` (ver 2.5) |
+
+No se pudo verificar corriendo el backend real (mismas limitaciones de red
+del sandbox documentadas en 2.4: TMDB, Hostinger MySQL y ahora también
+`binaries.prisma.sh` bloqueados, así que ni siquiera se pudo correr `prisma
+generate` acá). Se verificó con `tsc --noEmit` que los 3 archivos tocados
+compilan limpio (el resto de errores que tira `tsc` en este sandbox son
+preexistentes, por no tener el client de Prisma generado — no vienen de
+este cambio).
+
+**Sospecha fuerte, no aplicada como código porque es un cambio de
+configuración de infraestructura, no de código**: `render.yaml` tiene
+`plan: free`. El plan gratis de Render duerme el servicio tras ~15 min sin
+tráfico y el próximo request tarda 50+ segundos en "despertarlo" (cold
+start). El único cron que le pega al backend (`cron-job.org` →
+`/internal/sync/:job`) corre diario/semanal/mensual, no cada pocos minutos,
+así que no lo mantiene despierto. Para un sitio de tráfico bajo/medio esto
+probablemente explica gran parte de "tarda demasiado, se queda cargando" —
+mucho más que cualquier micro-optimización de queries. Dos soluciones
+posibles, a decidir por el usuario (no aplicadas):
+1. Agregar un cron externo (cron-job.org, mismo que ya usan) pegándole a
+   `GET https://nowsee-api.onrender.com/health` cada 10-14 minutos, todo el
+   día — mantiene el proceso despierto sin costo.
+2. Pasar el servicio de Render a un plan pago (no duerme).
+
 ## 4. Estado actual / próximos pasos sugeridos
 
 - [ ] Confirmar en el sitio real (Netlify) que la carga se siente más
       rápida con los cambios de performance — el usuario todavía no lo
       probó después del último batch de commits.
+- [ ] **Alta prioridad, no es código**: configurar un cron externo que le
+      pegue a `GET https://nowsee-api.onrender.com/health` cada 10-14 min
+      (o pasar Render a un plan pago) para evitar el cold start de 50+ seg
+      del plan free — ver 3.3, probablemente la causa principal de la
+      lentitud reportada.
 - [ ] Correr `npx capacitor-assets generate --android` localmente para
       tener íconos/splash reales.
 - [ ] Abrir `android/` en Android Studio y generar un primer APK de
