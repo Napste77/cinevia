@@ -22,14 +22,23 @@ internalRouter.post("/internal/seed", requireSyncSecret, async (_req, res) => {
 /**
  * POST /internal/sync/:job  (header X-Sync-Secret)
  * Pensado para hostings donde no se puede dejar un proceso node corriendo
- * un cron propio (ej. Hostinger compartido): un Cron Job de hPanel, o un
- * cron externo gratuito (cron-job.org), pega acá en vez de correr un
- * script directo.
+ * un cron propio (ej. Hostinger compartido, o un backend en Render): un
+ * Cron Job de hPanel, o un cron externo gratuito (cron-job.org), pega acá
+ * en vez de correr un script directo.
+ *
+ * El job (sobre todo "daily") puede tardar varios minutos en terminar —
+ * más de lo que cualquier cron por HTTP espera antes de cortar por
+ * timeout. Por eso se dispara en segundo plano y se responde 202 al
+ * toque; el resultado real queda en los logs del servicio (Render →
+ * pestaña "Logs"), no en la respuesta HTTP.
  */
 internalRouter.post("/internal/sync/:job", requireSyncSecret, async (req, res) => {
   const job = String(req.params.job);
   if (!isJobName(job)) throw new HttpError(400, `Job desconocido: ${job}`);
 
-  const result = await JOBS[job]();
-  res.json(result);
+  res.status(202).json({ job, status: "started" });
+
+  JOBS[job]()
+    .then((result) => console.log(`[internal/sync] "${job}" terminó:`, result))
+    .catch((e) => console.error(`[internal/sync] "${job}" falló:`, e));
 });
