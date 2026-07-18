@@ -19,3 +19,17 @@
     # si no, un deploy nuevo puede tardar en propagarse a usuarios que ya
     # instalaron una versión vieja.
     Cache-Control = "no-cache"
+
+# El bundler (Metro) le pone un hash del contenido al nombre de cada JS/CSS/
+# fuente/imagen que exporta bajo _expo/static y assets/ — si el contenido
+# cambia, cambia el nombre del archivo. Por eso son seguros de cachear "para
+# siempre": un visitante que vuelve no vuelve a bajar nada que ya tenga.
+[[headers]]
+  for = "/_expo/static/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
+
+[[headers]]
+  for = "/assets/*"
+  [headers.values]
+    Cache-Control = "public, max-age=31536000, immutable"
