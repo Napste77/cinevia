@@ -19,6 +19,7 @@ async function upsertTv(raw: any, imdbId?: string | null) {
   return tvShow;
 }
 
+/** Ver movies.ts::getOrFetchMovie — misma idea, devuelve también el detailBundle cuando lo pidió. */
 export async function getOrFetchTv(tmdbId: number) {
   const existing = await prisma.tVShow.findUnique({
     where: { tmdbId },
@@ -26,23 +27,24 @@ export async function getOrFetchTv(tmdbId: number) {
   });
 
   if (existing && !isStale(existing.lastSync, STALE_TTL_MS.content)) {
-    return existing;
+    return { tvShow: existing, detailBundle: undefined };
   }
 
   try {
-    const { detail, externalIds } = await tmdbGetDetail("tv", tmdbId);
-    const tvShow = await upsertTv(detail, externalIds.imdb_id);
-    return prisma.tVShow.findUnique({
+    const detailBundle = await tmdbGetDetail("tv", tmdbId);
+    const tvShow = await upsertTv(detailBundle.detail, detailBundle.externalIds.imdb_id);
+    const full = await prisma.tVShow.findUnique({
       where: { id: tvShow.id },
       include: { genres: { include: { genre: true } } },
     });
+    return { tvShow: full, detailBundle };
   } catch (e: any) {
     if (existing) {
       await prisma.tVShow.update({
         where: { id: existing.id },
         data: { syncStatus: "error", lastError: String(e?.message || e) },
       });
-      return existing;
+      return { tvShow: existing, detailBundle: undefined };
     }
     throw e;
   }

@@ -3,6 +3,7 @@ import { prisma } from "../db/prisma";
 import { getOrFetchMovie } from "./movies";
 import { getOrFetchTv } from "./tv";
 import { syncContentMedia, getCastFor, getTrailerFor, getSimilarFor } from "./media";
+import { tmdbGetDetail } from "../providers/tmdb";
 import { resolveProviders } from "./streamingLinks";
 import { getRatingSummary, getUserRating } from "./ratings";
 import { env } from "../config/env";
@@ -12,10 +13,11 @@ async function ensureMediaSynced(
   contentType: ContentType,
   contentId: number,
   tmdbId: number,
-  lastMediaSync: Date | null
+  lastMediaSync: Date | null,
+  detailBundle?: Awaited<ReturnType<typeof tmdbGetDetail>>
 ) {
   if (isStale(lastMediaSync, STALE_TTL_MS.media)) {
-    await syncContentMedia(contentType, contentId, tmdbId);
+    await syncContentMedia(contentType, contentId, tmdbId, detailBundle);
   }
 }
 
@@ -37,10 +39,10 @@ export async function getMovieDetailById(id: number, country = env.defaultCountr
 }
 
 async function getMovieDetail(tmdbId: number, country: string, userId: number | null) {
-  const movie = await getOrFetchMovie(tmdbId);
+  const { movie, detailBundle } = await getOrFetchMovie(tmdbId);
   if (!movie) return null;
 
-  await ensureMediaSynced("movie", movie.id, movie.tmdbId, movie.lastMediaSync);
+  await ensureMediaSynced("movie", movie.id, movie.tmdbId, movie.lastMediaSync, detailBundle);
   await registerView(userId, "movie", movie.id);
 
   const [cast, trailerKey, similar, providers, ratingSummary, myRating] = await Promise.all([
@@ -63,10 +65,10 @@ export async function getTvDetailById(id: number, country = env.defaultCountry, 
 }
 
 async function getTvDetail(tmdbId: number, country: string, userId: number | null) {
-  const tvShow = await getOrFetchTv(tmdbId);
+  const { tvShow, detailBundle } = await getOrFetchTv(tmdbId);
   if (!tvShow) return null;
 
-  await ensureMediaSynced("tv", tvShow.id, tvShow.tmdbId, tvShow.lastMediaSync);
+  await ensureMediaSynced("tv", tvShow.id, tvShow.tmdbId, tvShow.lastMediaSync, detailBundle);
   await registerView(userId, "tv", tvShow.id);
 
   const [cast, trailerKey, similar, providers, ratingSummary, myRating] = await Promise.all([

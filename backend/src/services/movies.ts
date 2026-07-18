@@ -19,7 +19,13 @@ async function upsertMovie(raw: any, imdbId?: string | null) {
   return movie;
 }
 
-/** Discovery-on-demand: DB primero; si no existe o quedó vieja, se resuelve contra TMDB y se guarda. */
+/**
+ * Discovery-on-demand: DB primero; si no existe o quedó vieja, se resuelve
+ * contra TMDB y se guarda. Devuelve también el `detailBundle` de TMDB
+ * cuando lo tuvo que pedir (video/credits/recomendaciones incluidos), así
+ * quien llama (ver services/detail.ts) puede reusarlo para sincronizar
+ * cast/tráiler/imágenes sin pedirle lo mismo a TMDB dos veces.
+ */
 export async function getOrFetchMovie(tmdbId: number) {
   const existing = await prisma.movie.findUnique({
     where: { tmdbId },
@@ -27,16 +33,17 @@ export async function getOrFetchMovie(tmdbId: number) {
   });
 
   if (existing && !isStale(existing.lastSync, STALE_TTL_MS.content)) {
-    return existing;
+    return { movie: existing, detailBundle: undefined };
   }
 
   try {
-    const { detail, externalIds } = await tmdbGetDetail("movie", tmdbId);
-    const movie = await upsertMovie(detail, externalIds.imdb_id);
-    return prisma.movie.findUnique({
+    const detailBundle = await tmdbGetDetail("movie", tmdbId);
+    const movie = await upsertMovie(detailBundle.detail, detailBundle.externalIds.imdb_id);
+    const full = await prisma.movie.findUnique({
       where: { id: movie.id },
       include: { genres: { include: { genre: true } } },
     });
+    return { movie: full, detailBundle };
   } catch (e: any) {
     if (existing) {
       // TMDB falló pero ya teníamos algo guardado: seguimos funcionando con
@@ -45,7 +52,7 @@ export async function getOrFetchMovie(tmdbId: number) {
         where: { id: existing.id },
         data: { syncStatus: "error", lastError: String(e?.message || e) },
       });
-      return existing;
+      return { movie: existing, detailBundle: undefined };
     }
     throw e;
   }
