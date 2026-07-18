@@ -43,9 +43,16 @@ export async function getStreamingAvailabilityLinks(
       const slug = SERVICE_ID_MAP[opt?.service?.id];
       if (slug && opt?.link && !links[slug]) links[slug] = opt.link;
     }
+    console.log(
+      `[streamingAvailability] tmdb=${tmdbId} region=${region}: ${options.length} opciones crudas, servicios=${options.map((o) => o?.service?.id).join(",")}, resueltos=${Object.keys(links).join(",") || "ninguno"}`
+    );
     return links;
-  } catch (e) {
-    console.error("Error consultando Streaming Availability API:", (e as any)?.message || e);
+  } catch (e: any) {
+    console.error(
+      "Error consultando Streaming Availability API:",
+      e?.response?.status,
+      e?.response?.data ?? e?.message ?? e
+    );
     return {};
   }
 }
