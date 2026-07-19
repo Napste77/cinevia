@@ -261,6 +261,61 @@ posibles, a decidir por el usuario (no aplicadas):
    día — mantiene el proceso despierto sin costo.
 2. Pasar el servicio de Render a un plan pago (no duerme).
 
+## 3.4. Deploy a producción + incidente crítico encontrado y resuelto (pantalla en blanco en fichas)
+
+Se detectó que `main` estaba 18 commits atrás de esta rama — todo el
+trabajo de las secciones 2.2 a 3.3 nunca había llegado a producción
+(Netlify/Render despliegan desde `main`). Se mergeó todo a `main` (merge
+no trivial: `main` tenía un commit, `bae05a9`, que no era ancestro de esta
+rama porque esta rama había reimplementado el mismo backend de forma
+independiente — se resolvió con `git merge -X theirs` tras verificar que
+el árbol de archivos de la rama es superset del de `main` y su contenido
+es una evolución directa, no una versión distinta) y se pusheó.
+
+**Al testear el deploy real con Playwright/Chrome, apareció un bug crítico
+que NO estaba cubierto por la verificación de la sesión anterior**: hacer
+clic en cualquier ficha (o cualquier pantalla que no fuera Home) dejaba la
+pantalla en blanco, con `Error: Requiring unknown module "541"` en
+consola. Reproducible en producción con Service Worker y caché
+completamente limpios (se descartó como causa), y también se descartó que
+fuera un problema de build/deploy stale: un "Deploy sin caché" en Netlify
+produjo exactamente los mismos hashes de archivo, y se confirmó que el
+chunk `DetailScreen-*.js` existía en el deploy, con el tamaño correcto, y
+que el módulo 541 se registraba bien adentro del archivo, y que el mapa
+módulo→URL en el bundle principal también era correcto.
+
+**Causa real**: `React.lazy(() => import(...))` por pantalla (agregado en
+3.1 para bajar el peso del bundle inicial) genera los archivos separados
+correctamente con `expo export --platform web`, pero sin `expo-router` el
+loader async de Metro para web no llega a pedir esos archivos por red
+antes de requerirlos — falla de forma síncrona y sistemática en cualquier
+pantalla lazy. La verificación anterior (Playwright) solo había confirmado
+que el Home renderizaba con el nuevo endpoint batched; nunca probó
+navegar a una ficha, que es exactamente el flujo que quedaba roto.
+
+**Fix**: se revirtió el code-splitting por pantalla en `App.tsx` (vuelta a
+imports eager de `SearchScreen`, `DetailScreen`, `MyListScreen`,
+`ProfileScreen`, `CategoryScreen`, `AuthScreen` — ya no son
+`React.lazy`). El bundle inicial vuelve a pesar ~900 KB en un solo
+archivo (antes se repartía en ~811 KB + chunks bajo demanda), pero se
+mantienen intactos el resto de las optimizaciones: endpoint batched
+`/home/rows`, memoización + virtualización del Home, cache headers de
+Netlify, todos los fixes de backend (2.5, 3.1, 3.3). Verificado en
+producción: la ficha, "Buscar" y la navegación en general vuelven a
+funcionar. Si en el futuro se quiere retomar el code-splitting por
+pantalla, hace falta migrar a `expo-router` (que sí arma el loader async
+completo) — no alcanza con repetir lo mismo.
+
+**Estado del deploy real verificado con Chrome** (no solo build local):
+carga inicial del Home bajó de ~289 requests / 17 llamadas HTTP separadas
+al backend / bundle único de 893 KB sin split, a ~44 requests iniciales /
+1 sola llamada a `/home/rows` (+ 2 de tendencias separadas a propósito) /
+imágenes limitadas a lo que entra en viewport gracias a la virtualización.
+
+También se creó un cronjob en cron-job.org (`NowSee API keep-alive`,
+cada 2 minutos contra `/health`) para evitar el cold start del plan free
+de Render — ver 3.3 para el detalle de por qué hacía falta.
+
 ## 4. Estado actual / próximos pasos sugeridos
 
 - [ ] Confirmar en el sitio real (Netlify) que la carga se siente más
