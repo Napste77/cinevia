@@ -83,7 +83,7 @@ export default function HomeScreen({ navigation }: any) {
   // concurrentes del navegador con el contenido crítico de arriba (Hero +
   // primera fila), que es lo que de verdad define el LCP percibido.
   useEffect(() => {
-    if (loadingMovies || availablePlatforms === null) return;
+    if (loadingMovies) return;
     let cancelled = false;
     setLoadingRows(true);
     getHomeRows(country, PROVIDER_IDS, GENRE_IDS)
@@ -100,7 +100,7 @@ export default function HomeScreen({ navigation }: any) {
     return () => {
       cancelled = true;
     };
-  }, [country, loadingMovies, availablePlatforms, visiblePlatformRows]);
+  }, [country, loadingMovies]);
 
   const heroItem = useMemo(
     () => trendingMovies[0] || trendingSeries[0] || null,

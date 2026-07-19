@@ -10,7 +10,6 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { TrendingItem } from "../types";
 import { colors, radii, fonts } from "../theme";
 import RatingBadge from "./RatingBadge";
-import { useFavorites } from "../hooks/useFavorites";
 
 const CARD_WIDTH = 160;
 
