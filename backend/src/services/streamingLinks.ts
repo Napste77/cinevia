@@ -4,6 +4,7 @@ import { tmdbGetWatchProviders } from "../providers/tmdb";
 import { getWikidataStreamingLinks } from "../providers/wikidata";
 import { getStreamingAvailabilityLinks } from "../providers/streamingAvailability";
 import { getPlatformByTmdbId, PlatformDef } from "../data/platforms";
+import { listPlatforms } from "./platforms";
 import { getStreamingLinkOverrides } from "../data/streamingLinkOverrides";
 import { resolveImageUrl } from "../utils/media";
 
@@ -80,10 +81,11 @@ export async function resolveProviders(
     .map((p: any) => ({ p, platformDef: getPlatformByTmdbId(p.provider_id) }))
     .filter((x: any) => x.platformDef);
 
-  const slugs = curated.map((x: any) => x.platformDef!.slug);
-  const platformRows = slugs.length
-    ? await prisma.platform.findMany({ where: { slug: { in: slugs } } })
-    : [];
+  // El catálogo de plataformas sale del cache en memoria (services/platforms.ts,
+  // TTL 10 min) — cero viajes a la DB para esto en el caso típico.
+  const slugSet = new Set(curated.map((x: any) => x.platformDef!.slug));
+  const allPlatforms = await listPlatforms();
+  const platformRows = allPlatforms.filter((r: any) => slugSet.has(r.slug));
   const platformBySlug = new Map<string, any>(platformRows.map((r: any) => [r.slug, r]));
 
   const platformIds: number[] = platformRows.map((r: any) => r.id);

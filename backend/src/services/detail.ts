@@ -10,6 +10,18 @@ import { env } from "../config/env";
 import { STALE_TTL_MS, isStale } from "../config/sync";
 
 /**
+ * Marca una promesa como "manejada" sin tragarse el error: las queries del
+ * detalle se disparan ANTES del primer await (para acortar la cadena
+ * crítica), y si una rechazara en ese intervalo sin handler, Node >=15
+ * mata el proceso por unhandledRejection. El error real igual llega al
+ * Promise.all de más abajo.
+ */
+function fireEarly<T>(p: Promise<T>): Promise<T> {
+  p.catch(() => {});
+  return p;
+}
+
+/**
  * La sync de media (cast/tráiler/recomendaciones) escribe decenas de filas
  * en la MySQL remota — medido en producción: ~5 segundos bloqueando la
  * ficha cuando le tocaba refrescar. Solo vale la pena esperarla la PRIMERA
@@ -65,6 +77,18 @@ async function getMovieDetail(
   country: string,
   userId: number | null
 ) {
+  // Cast/tráiler/similares/ratings solo necesitan nuestro id interno, que
+  // ya lo tenemos — se disparan de una. Solo providers depende de datos
+  // del título (tmdbId/title), que ya vienen en `preloaded`. Cada viaje a
+  // la MySQL remota cuesta ~250-300ms, así que acortar la cadena crítica
+  // en un solo salto se nota.
+  const castP = fireEarly(getCastFor("movie", preloaded.id));
+  const trailerP = fireEarly(getTrailerFor("movie", preloaded.id));
+  const similarP = fireEarly(getSimilarFor("movie", preloaded.id));
+  const ratingP = fireEarly(getRatingSummary("movie", preloaded.id));
+  const myRatingP = fireEarly(userId ? getUserRating(userId, "movie", preloaded.id) : Promise.resolve(null));
+  const providersP = fireEarly(resolveProviders("movie", preloaded.id, preloaded.tmdbId, preloaded.title, country));
+
   let movie: any = preloaded;
   let detailBundle: Awaited<ReturnType<typeof tmdbGetDetail>> | undefined;
   if (isStale(preloaded.lastSync, STALE_TTL_MS.content)) {
@@ -81,12 +105,12 @@ async function getMovieDetail(
   );
 
   const [cast, trailerKey, similar, providers, ratingSummary, myRating] = await Promise.all([
-    getCastFor("movie", movie.id),
-    getTrailerFor("movie", movie.id),
-    getSimilarFor("movie", movie.id),
-    resolveProviders("movie", movie.id, movie.tmdbId, movie.title, country),
-    getRatingSummary("movie", movie.id),
-    userId ? getUserRating(userId, "movie", movie.id) : Promise.resolve(null),
+    castP,
+    trailerP,
+    similarP,
+    providersP,
+    ratingP,
+    myRatingP,
   ]);
 
   return { movie, cast, trailerKey, similar: similar.movies, providers, ratingSummary, myRating };
@@ -108,6 +132,14 @@ async function getTvDetail(
   country: string,
   userId: number | null
 ) {
+  // Ver getMovieDetail — mismas queries disparadas de entrada.
+  const castP = fireEarly(getCastFor("tv", preloaded.id));
+  const trailerP = fireEarly(getTrailerFor("tv", preloaded.id));
+  const similarP = fireEarly(getSimilarFor("tv", preloaded.id));
+  const ratingP = fireEarly(getRatingSummary("tv", preloaded.id));
+  const myRatingP = fireEarly(userId ? getUserRating(userId, "tv", preloaded.id) : Promise.resolve(null));
+  const providersP = fireEarly(resolveProviders("tv", preloaded.id, preloaded.tmdbId, preloaded.title, country));
+
   let tvShow: any = preloaded;
   let detailBundle: Awaited<ReturnType<typeof tmdbGetDetail>> | undefined;
   if (isStale(preloaded.lastSync, STALE_TTL_MS.content)) {
@@ -124,12 +156,12 @@ async function getTvDetail(
   );
 
   const [cast, trailerKey, similar, providers, ratingSummary, myRating] = await Promise.all([
-    getCastFor("tv", tvShow.id),
-    getTrailerFor("tv", tvShow.id),
-    getSimilarFor("tv", tvShow.id),
-    resolveProviders("tv", tvShow.id, tvShow.tmdbId, tvShow.title, country),
-    getRatingSummary("tv", tvShow.id),
-    userId ? getUserRating(userId, "tv", tvShow.id) : Promise.resolve(null),
+    castP,
+    trailerP,
+    similarP,
+    providersP,
+    ratingP,
+    myRatingP,
   ]);
 
   return { tvShow, cast, trailerKey, similar: similar.tvShows, providers, ratingSummary, myRating };
