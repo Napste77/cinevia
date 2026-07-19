@@ -50,9 +50,20 @@ export async function search(query: string, limit = 20) {
   // de ahora ese contenido ya queda indexado localmente.
   if (movies.length === 0 && tvShows.length === 0) {
     const { results } = await tmdbSearchMulti(sanitized);
-    for (const raw of results.slice(0, limit)) {
-      if (raw.media_type === "movie") movies.push((await upsertMovie(raw)) as any);
-      else if (raw.media_type === "tv") tvShows.push((await upsertTv(raw)) as any);
+    const relevant = results.slice(0, limit);
+    const upserted = await Promise.all(
+      relevant.map((raw) =>
+        raw.media_type === "movie"
+          ? upsertMovie(raw).then((m) => ({ type: "movie" as const, row: m }))
+          : raw.media_type === "tv"
+            ? upsertTv(raw).then((tv) => ({ type: "tv" as const, row: tv }))
+            : null
+      )
+    );
+    for (const u of upserted) {
+      if (!u) continue;
+      if (u.type === "movie") movies.push(u.row as any);
+      else tvShows.push(u.row as any);
     }
   }
 

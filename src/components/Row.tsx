@@ -10,6 +10,7 @@ import {
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { TrendingItem } from "../types";
 import MediaCard from "./MediaCard";
+import { useFavorites } from "../hooks/useFavorites";
 import { colors, fonts, spacing } from "../theme";
 
 // Alto fijo del área de contenido (poster 160x240 + título + metadata).
@@ -33,6 +34,8 @@ export default function Row({
   onSeeAllPress?: () => void;
   emptyLabel?: string;
 }) {
+  const { isFavorite, toggleFavorite } = useFavorites();
+
   return (
     <View style={styles.section}>
       <View style={styles.header}>
@@ -62,7 +65,12 @@ export default function Row({
             contentContainerStyle={{ paddingRight: spacing.marginMobile }}
             ItemSeparatorComponent={() => <View style={{ width: 14 }} />}
             renderItem={({ item }) => (
-              <MediaCard item={item} onPress={() => onItemPress(item)} />
+              <MediaCard
+                item={item}
+                onPress={() => onItemPress(item)}
+                isFavorite={isFavorite(item)}
+                onToggleFavorite={() => toggleFavorite(item)}
+              />
             )}
           />
         )}

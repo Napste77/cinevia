@@ -3,7 +3,7 @@ import { ContentType } from "@prisma/client";
 import { tmdbGetWatchProviders } from "../providers/tmdb";
 import { getWikidataStreamingLinks } from "../providers/wikidata";
 import { getStreamingAvailabilityLinks } from "../providers/streamingAvailability";
-import { getPlatformByTmdbId } from "../data/platforms";
+import { getPlatformByTmdbId, PlatformDef } from "../data/platforms";
 import { getStreamingLinkOverrides } from "../data/streamingLinkOverrides";
 import { resolveImageUrl } from "../utils/media";
 
@@ -30,13 +30,23 @@ export interface ResolvedProvider {
   verified: boolean;
 }
 
+interface PendingResolution {
+  platformDef: PlatformDef;
+  platformRowId: number;
+  fallbackUrl: string;
+}
+
 /**
  * Para un título dado, devuelve TODAS las plataformas donde TMDB dice que
  * está disponible por suscripción en `country`, con la URL ya resuelta:
  *   - Si tenemos la plataforma en nuestro catálogo curado (src/data/platforms.ts)
  *     y ya la resolvimos hace menos de RESOLVE_TTL_MS, se reusa de la DB.
- *   - Si no, se resuelve (Wikidata -> Streaming Availability -> override
- *     manual -> búsqueda genérica dentro de la plataforma) y se persiste.
+ *   - Si no, se responde YA con el fallback de búsqueda dentro de la
+ *     plataforma (misma UX que "no encontrado") y el deep link real
+ *     (Wikidata / Streaming Availability / overrides) se resuelve en
+ *     background: esas consultas pueden tardar varios segundos y no tiene
+ *     sentido bloquear la respuesta de la ficha esperándolas — la próxima
+ *     vez que alguien la abra ya va a estar resuelto y cacheado.
  *   - Si TMDB devuelve una plataforma que no tenemos curada, igual se
  *     informa con un fallback de búsqueda en Google (mismo comportamiento
  *     que tenía el frontend antes de esta migración).
@@ -56,9 +66,9 @@ export async function resolveProviders(
   const flatrate: any[] = watchProviders?.flatrate || [];
   if (flatrate.length === 0) return [];
 
-  let liveLinks: Record<string, string> | null = null;
-
   const results: ResolvedProvider[] = [];
+  const pending: PendingResolution[] = [];
+
   for (const p of flatrate) {
     const platformDef = getPlatformByTmdbId(p.provider_id);
 
@@ -99,22 +109,50 @@ export async function resolveProviders(
       continue;
     }
 
-    // Resolver en vivo: Wikidata primero (gratis/sin límite), después la API
-    // paga opcional, después overrides manuales, y como último recurso la
-    // búsqueda dentro de la plataforma.
-    if (liveLinks === null) {
-      const mediaType = contentType === "movie" ? "movie" : "tv";
-      const [wikidata, availability] = await Promise.all([
-        getWikidataStreamingLinks(tmdbId, mediaType),
-        getStreamingAvailabilityLinks(tmdbId, mediaType, country),
-      ]);
-      liveLinks = { ...availability, ...wikidata };
-    }
+    results.push({
+      providerName: p.provider_name,
+      logo: resolveImageUrl(p.logo_path, "tmdb", "w200"),
+      color: platformDef.color,
+      url: existing?.providerUrl || platformDef.searchUrl(title),
+      verified: existing?.verified ?? false,
+    });
+    pending.push({ platformDef, platformRowId: platformRow.id, fallbackUrl: platformDef.searchUrl(title) });
+  }
 
-    const overrides = getStreamingLinkOverrides();
+  if (pending.length > 0) {
+    resolvePendingLinksInBackground(contentType, contentId, tmdbId, country, pending).catch((e) =>
+      console.error("Error resolviendo deep links en background:", e)
+    );
+  }
+
+  return results;
+}
+
+/**
+ * Wikidata (SPARQL) y Streaming Availability pueden tardar varios segundos
+ * o directamente colgarse — por eso corren desacopladas de la respuesta al
+ * usuario. Actualiza streaming_links para que la PRÓXIMA vista de esta
+ * ficha ya sirva el deep link real desde caché.
+ */
+async function resolvePendingLinksInBackground(
+  contentType: ContentType,
+  contentId: number,
+  tmdbId: number,
+  country: string,
+  pending: PendingResolution[]
+) {
+  const mediaType = contentType === "movie" ? "movie" : "tv";
+  const [wikidata, availability] = await Promise.all([
+    getWikidataStreamingLinks(tmdbId, mediaType),
+    getStreamingAvailabilityLinks(tmdbId, mediaType, country),
+  ]);
+  const liveLinks = { ...availability, ...wikidata };
+  const overrides = getStreamingLinkOverrides();
+
+  for (const { platformDef, platformRowId, fallbackUrl } of pending) {
     const overrideUrl = overrides[`${contentType}-${tmdbId}`]?.[platformDef.slug];
     const resolvedUrl = liveLinks[platformDef.slug] || overrideUrl;
-    const url = resolvedUrl || platformDef.searchUrl(title);
+    const url = resolvedUrl || fallbackUrl;
     const verified = Boolean(resolvedUrl);
 
     await prisma.streamingLink.upsert({
@@ -122,7 +160,7 @@ export async function resolveProviders(
         content_platform_country: {
           contentType,
           contentId,
-          platformId: platformRow.id,
+          platformId: platformRowId,
           country,
         },
       },
@@ -130,22 +168,12 @@ export async function resolveProviders(
       create: {
         contentType,
         contentId,
-        platformId: platformRow.id,
+        platformId: platformRowId,
         country,
         providerUrl: url,
         verified,
         lastChecked: new Date(),
       },
     });
-
-    results.push({
-      providerName: p.provider_name,
-      logo: resolveImageUrl(p.logo_path, "tmdb", "w200"),
-      color: platformDef.color,
-      url,
-      verified,
-    });
   }
-
-  return results;
 }

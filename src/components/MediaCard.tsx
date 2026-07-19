@@ -14,20 +14,30 @@ import { useFavorites } from "../hooks/useFavorites";
 
 const CARD_WIDTH = 160;
 
-export default function MediaCard({
+/**
+ * `isFavorite`/`onToggleFavorite` llegan resueltos por prop (en vez de
+ * llamar useFavorites() acá adentro): así, cuando se togglea un favorito
+ * en cualquier parte de la app, solo la ÚNICA card cuyo estado cambió de
+ * verdad vuelve a renderizar (ver el comparador de React.memo más abajo)
+ * en vez de las ~300 que puede haber montadas en el Home a la vez.
+ */
+function MediaCard({
   item,
   onPress,
+  isFavorite,
+  onToggleFavorite,
   width = CARD_WIDTH,
 }: {
   item: TrendingItem;
   onPress: () => void;
+  isFavorite: boolean;
+  onToggleFavorite: () => void;
   width?: number;
 }) {
   const [hovered, setHovered] = useState(false);
-  const { isFavorite, toggleFavorite } = useFavorites();
   const uri = item.poster_path;
   const year = item.release_date ? item.release_date.slice(0, 4) : null;
-  const fav = isFavorite(item);
+  const fav = isFavorite;
 
   return (
     <Pressable
@@ -65,7 +75,7 @@ export default function MediaCard({
           style={[styles.favoriteButton, fav && styles.favoriteButtonActive]}
           onPress={(e: any) => {
             e.stopPropagation?.();
-            toggleFavorite(item);
+            onToggleFavorite();
           }}
           hitSlop={8}
         >
@@ -152,3 +162,14 @@ const styles = StyleSheet.create({
     marginTop: 2,
   },
 });
+
+// onPress/onToggleFavorite se recrean en cada render del padre (son
+// closures inline) pero siempre apuntan al mismo `item` — comparar su
+// identidad haría que el memo nunca "pegue". Lo que sí importa para el
+// resultado visual es item/isFavorite/width, así que el comparador mira
+// solo eso.
+function areEqual(prev: Readonly<Parameters<typeof MediaCard>[0]>, next: Readonly<Parameters<typeof MediaCard>[0]>) {
+  return prev.item === next.item && prev.isFavorite === next.isFavorite && prev.width === next.width;
+}
+
+export default React.memo(MediaCard, areEqual);

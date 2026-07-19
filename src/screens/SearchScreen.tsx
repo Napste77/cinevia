@@ -8,10 +8,12 @@ import SearchBar from "../components/SearchBar";
 import MediaCard from "../components/MediaCard";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useResponsive } from "../hooks/useResponsive";
+import { useFavorites } from "../hooks/useFavorites";
 import { colors, fonts, spacing } from "../theme";
 
 export default function SearchScreen({ navigation }: any) {
   const { isDesktop, isMobile, columns, width } = useResponsive();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 350);
   const [results, setResults] = useState<TrendingItem[]>([]);
@@ -82,7 +84,13 @@ export default function SearchScreen({ navigation }: any) {
           columnWrapperStyle={columns > 1 ? { gap: gutter } : undefined}
           ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
           renderItem={({ item }) => (
-            <MediaCard item={item} onPress={() => openDetail(item)} width={cardWidth} />
+            <MediaCard
+              item={item}
+              onPress={() => openDetail(item)}
+              width={cardWidth}
+              isFavorite={isFavorite(item)}
+              onToggleFavorite={() => toggleFavorite(item)}
+            />
           )}
         />
       </View>

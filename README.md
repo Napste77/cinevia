@@ -107,6 +107,81 @@ variables):
   (algunos Android con ROMs personalizadas), se muestra igual un cartel con
   instrucciones para instalar manualmente desde el menú.
 
+## Capacitor / APK de Android
+
+Una sola base de código para web, PWA y Android: Capacitor empaqueta el
+MISMO build web (`expo export --platform web`, el mismo `dist/` que se
+sube a Netlify) dentro de un WebView nativo — no hay un proyecto Android
+separado que mantener aparte, ni pantallas duplicadas.
+
+```bash
+# 1. Buildear el bundle web apuntando al backend de PRODUCCIÓN (no
+#    localhost — el APK no va a poder resolver "localhost" en el
+#    teléfono de un usuario real).
+EXPO_PUBLIC_API_BASE_URL=https://nowsee-api.onrender.com \
+  npx expo export --platform web --clear
+
+# 2. Copiar ese build al proyecto nativo de Android (carpeta android/,
+#    ya generada y versionada en el repo).
+npx cap sync android
+
+# 3. Abrir el proyecto en Android Studio y generar el APK/AAB desde ahí
+#    (Build → Generate Signed Bundle / APK). Este repo no compila el APK
+#    por sí solo: hace falta Android Studio (o el SDK + Gradle) instalado
+#    localmente.
+npx cap open android
+```
+
+Detalles de la integración (ver `src/api/deepLinks.ts` y `App.tsx`):
+
+- **`Platform.OS` sigue siendo `"web"` adentro del WebView** (react-native-web
+  no sabe que está empaquetado) — todo el código que necesita distinguir
+  "de verdad es un navegador" de "es la app empaquetada" usa
+  `Capacitor.isNativePlatform()` en su lugar (deep links, botón de instalar
+  PWA, registro del service worker).
+- **Botón "Atrás" de Android**: conectado a mano al historial de React
+  Navigation (`@capacitor/app`) — navega hacia atrás en la app mientras
+  haya historial, y recién cierra la app cuando no queda nada atrás.
+- **Links a plataformas de streaming**: se abren con `@capacitor/browser`
+  (Chrome Custom Tabs / SFSafariViewController) en vez de navegar el
+  WebView de la app hacia el sitio externo — si no, el usuario quedaría
+  "atrapado" viendo netflix.com sin volver a NowSee.
+- **Service worker**: no se registra dentro de Capacitor (no aporta nada —
+  los assets ya viven empaquetados en el APK, no hace falta cachearlos de
+  nuevo).
+- **Splash screen y barra de estado**: color de fondo `#0c1324` (el mismo
+  del tema oscuro de la app) configurado en `capacitor.config.ts` y en
+  `App.tsx`.
+- **CORS**: el backend ya permite cualquier origen (`cors()` sin
+  restricciones), así que el WebView (`https://localhost` por defecto en
+  Capacitor) funciona sin cambios adicionales.
+
+### Ícono y splash reales (pendiente de generar)
+
+`resources/icon.png` (1024×1024, el mismo `assets/icon.png` de la app) ya
+está listo para generar los íconos adaptativos y la pantalla de splash de
+verdad. Ese paso necesita la librería `sharp` (vía `@capacitor/assets`),
+que este entorno no pudo instalar por restricciones de red del sandbox —
+correrlo desde una máquina con acceso normal a internet:
+
+```bash
+npm install --save-dev @capacitor/assets
+npx capacitor-assets generate --android
+npx cap sync android
+```
+
+Hasta que se corra ese paso, el APK compila y funciona correctamente, pero
+el ícono del launcher y la pantalla de splash muestran el placeholder
+genérico de Capacitor en vez del logo de NowSee.
+
+### iOS (a futuro)
+
+La misma base ya queda lista: `npx cap add ios` genera el proyecto nativo
+de iOS a partir del mismo `dist/`, con el mismo `capacitor.config.ts` y las
+mismas correcciones de compatibilidad (Capacitor detecta la plataforma
+automáticamente). Falta scaffolding específico (`ios/`) y una Mac con
+Xcode para compilarlo, así que no se generó en esta pasada.
+
 ## Deep links a plataformas de streaming
 
 La resolución de deep links (Wikidata + Streaming Availability API +
@@ -128,7 +203,8 @@ cual.
 
 **Frontend**: Expo (React Native + react-native-web), TypeScript, React
 Navigation, Axios contra la API propia de NowSee. Deploy como sitio
-estático PWA en Netlify.
+estático PWA en Netlify. Empaquetado como APK de Android vía Capacitor
+(mismo build web, ver sección "Capacitor / APK de Android" arriba).
 
 **Backend** (`backend/`): Node.js + TypeScript + Express + Prisma sobre
 MySQL. Ver `backend/README.md`.

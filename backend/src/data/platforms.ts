@@ -41,7 +41,10 @@ export const PLATFORMS: PlatformDef[] = [
     color: "#00A8E1",
     webBaseUrl: "https://www.primevideo.com",
     titleUrl: (id) => `https://www.primevideo.com/detail/${id}`,
-    searchUrl: (title) => `https://www.primevideo.com/search/ref=atv_nb_sr?phrase=${enc(title)}`,
+    // primevideo.com no soporta búsqueda por URL sin sesión (redirige al
+    // inicio); el buscador general de Amazon filtrado a video sí funciona
+    // sin login y lleva a resultados reales.
+    searchUrl: (title) => `https://www.amazon.com/s?k=${enc(title)}&i=instant-video`,
   },
   {
     tmdbId: 1899,

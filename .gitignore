@@ -7,3 +7,11 @@ npm-debug.*
 .env
 .DS_Store
 .claude/
+
+# Android: `npx cap add android` generó su propio android/.gitignore que ya
+# excluye build/, .gradle/, local.properties, los assets web copiados
+# (app/src/main/assets/public) y los config.json generados — no hace falta
+# duplicar esas reglas acá.
+
+# iOS (cuando se agregue la plataforma con `npx cap add ios`, va a traer su
+# propio .gitignore igual que Android).

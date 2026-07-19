@@ -19,7 +19,13 @@ async function upsertMovie(raw: any, imdbId?: string | null) {
   return movie;
 }
 
-/** Discovery-on-demand: DB primero; si no existe o quedó vieja, se resuelve contra TMDB y se guarda. */
+/**
+ * Discovery-on-demand: DB primero; si no existe o quedó vieja, se resuelve
+ * contra TMDB y se guarda. Devuelve también el `detailBundle` de TMDB
+ * cuando lo tuvo que pedir (video/credits/recomendaciones incluidos), así
+ * quien llama (ver services/detail.ts) puede reusarlo para sincronizar
+ * cast/tráiler/imágenes sin pedirle lo mismo a TMDB dos veces.
+ */
 export async function getOrFetchMovie(tmdbId: number) {
   const existing = await prisma.movie.findUnique({
     where: { tmdbId },
@@ -27,16 +33,17 @@ export async function getOrFetchMovie(tmdbId: number) {
   });
 
   if (existing && !isStale(existing.lastSync, STALE_TTL_MS.content)) {
-    return existing;
+    return { movie: existing, detailBundle: undefined };
   }
 
   try {
-    const { detail, externalIds } = await tmdbGetDetail("movie", tmdbId);
-    const movie = await upsertMovie(detail, externalIds.imdb_id);
-    return prisma.movie.findUnique({
+    const detailBundle = await tmdbGetDetail("movie", tmdbId);
+    const movie = await upsertMovie(detailBundle.detail, detailBundle.externalIds.imdb_id);
+    const full = await prisma.movie.findUnique({
       where: { id: movie.id },
       include: { genres: { include: { genre: true } } },
     });
+    return { movie: full, detailBundle };
   } catch (e: any) {
     if (existing) {
       // TMDB falló pero ya teníamos algo guardado: seguimos funcionando con
@@ -45,7 +52,7 @@ export async function getOrFetchMovie(tmdbId: number) {
         where: { id: existing.id },
         data: { syncStatus: "error", lastError: String(e?.message || e) },
       });
-      return existing;
+      return { movie: existing, detailBundle: undefined };
     }
     throw e;
   }
@@ -118,12 +125,20 @@ export async function discoverMovies(params: DiscoverMoviesParams) {
     };
   }
 
-  const platformContentIds = async () => {
+  // Se pedía esta misma lista dos veces por request (una para el count,
+  // otra para el where del findMany final) — cada una es un viaje a la
+  // MySQL remota de Hostinger. Se resuelve una sola vez y se cachea acá
+  // (`cachedPlatformIds`) para reusarla más abajo.
+  let cachedPlatformIds: number[] | null = null;
+  const platformContentIds = async (): Promise<number[]> => {
+    if (cachedPlatformIds !== null) return cachedPlatformIds;
     const links = await prisma.streamingLink.findMany({
       where: { contentType: "movie", platformId: platformId!, country },
       select: { contentId: true },
     });
-    return links.map((l) => l.contentId);
+    const ids: number[] = links.map((l: { contentId: number }) => l.contentId);
+    cachedPlatformIds = ids;
+    return ids;
   };
 
   const countMatching = async () => {
@@ -144,23 +159,30 @@ export async function discoverMovies(params: DiscoverMoviesParams) {
       year: params.year,
       page,
     });
-    for (const raw of data.results) {
-      const movie = await upsertMovie(raw);
-      if (platformId) {
-        await prisma.streamingLink.upsert({
-          where: {
-            content_platform_country: {
-              contentType: "movie",
-              contentId: movie.id,
-              platformId,
-              country,
+    // Antes se hacía un `await upsertMovie` por item, en serie (hasta 20
+    // viajes secuenciales a la MySQL remota). Cada item es independiente,
+    // así que se resuelven en paralelo — mismo patrón ya usado en
+    // services/search.ts para su propio fallback de TMDB.
+    await Promise.all(
+      data.results.map(async (raw: any) => {
+        const movie = await upsertMovie(raw);
+        if (platformId) {
+          await prisma.streamingLink.upsert({
+            where: {
+              content_platform_country: {
+                contentType: "movie",
+                contentId: movie.id,
+                platformId,
+                country,
+              },
             },
-          },
-          update: {},
-          create: { contentType: "movie", contentId: movie.id, platformId, country, verified: false },
-        });
-      }
-    }
+            update: {},
+            create: { contentType: "movie", contentId: movie.id, platformId, country, verified: false },
+          });
+        }
+      })
+    );
+    if (platformId) cachedPlatformIds = null; // se insertaron links nuevos, invalidar el cache local
   }
 
   const where = { ...baseWhere } as any;

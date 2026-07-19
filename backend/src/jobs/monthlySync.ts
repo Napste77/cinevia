@@ -67,8 +67,8 @@ export async function runMonthlySync() {
   let moviesRefreshed = 0;
   for (const movie of staleMovies) {
     try {
-      const refreshed = await getOrFetchMovie(movie.tmdbId);
-      if (refreshed) await syncContentMedia("movie", refreshed.id, refreshed.tmdbId);
+      const { movie: refreshed, detailBundle } = await getOrFetchMovie(movie.tmdbId);
+      if (refreshed) await syncContentMedia("movie", refreshed.id, refreshed.tmdbId, detailBundle);
       moviesRefreshed++;
     } catch (e) {
       console.error(`Error en actualización completa de película ${movie.tmdbId}`, e);
@@ -79,8 +79,8 @@ export async function runMonthlySync() {
   let tvRefreshed = 0;
   for (const tvShow of staleTv) {
     try {
-      const refreshed = await getOrFetchTv(tvShow.tmdbId);
-      if (refreshed) await syncContentMedia("tv", refreshed.id, refreshed.tmdbId);
+      const { tvShow: refreshed, detailBundle } = await getOrFetchTv(tvShow.tmdbId);
+      if (refreshed) await syncContentMedia("tv", refreshed.id, refreshed.tmdbId, detailBundle);
       tvRefreshed++;
     } catch (e) {
       console.error(`Error en actualización completa de serie ${tvShow.tmdbId}`, e);

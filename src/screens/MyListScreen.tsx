@@ -10,7 +10,7 @@ import { colors, fonts, spacing } from "../theme";
 import { TrendingItem } from "../types";
 
 export default function MyListScreen({ navigation }: any) {
-  const { favorites } = useFavorites();
+  const { favorites, isFavorite, toggleFavorite } = useFavorites();
   const { isDesktop, columns, width } = useResponsive();
   const hPad = isDesktop ? spacing.marginDesktop : spacing.marginMobile;
   const gutter = 14;
@@ -40,7 +40,13 @@ export default function MyListScreen({ navigation }: any) {
             columnWrapperStyle={columns > 1 ? { gap: gutter } : undefined}
             ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
             renderItem={({ item }) => (
-              <MediaCard item={item} onPress={() => openDetail(item)} width={cardWidth} />
+              <MediaCard
+                item={item}
+                onPress={() => openDetail(item)}
+                width={cardWidth}
+                isFavorite={isFavorite(item)}
+                onToggleFavorite={() => toggleFavorite(item)}
+              />
             )}
           />
         )}

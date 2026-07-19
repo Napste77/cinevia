@@ -10,6 +10,7 @@ import MediaCard from "../components/MediaCard";
 import FilterChip from "../components/FilterChip";
 import { useResponsive } from "../hooks/useResponsive";
 import { useRegion } from "../context/RegionContext";
+import { useFavorites } from "../hooks/useFavorites";
 import { colors, fonts, spacing } from "../theme";
 
 type SortOption = "popularity" | "newest";
@@ -22,6 +23,7 @@ export default function CategoryScreen({ route, navigation }: any) {
   const { slug } = route.params;
   const category = getCategoryBySlug(slug);
   const { country } = useRegion();
+  const { isFavorite, toggleFavorite } = useFavorites();
   const { isDesktop, columns, width } = useResponsive();
   const hPad = isDesktop ? spacing.marginDesktop : spacing.marginMobile;
   const gutter = 14;
@@ -171,7 +173,13 @@ export default function CategoryScreen({ route, navigation }: any) {
             columnWrapperStyle={columns > 1 ? { gap: gutter } : undefined}
             ItemSeparatorComponent={() => <View style={{ height: 20 }} />}
             renderItem={({ item }) => (
-              <MediaCard item={item} onPress={() => openDetail(item)} width={cardWidth} />
+              <MediaCard
+                item={item}
+                onPress={() => openDetail(item)}
+                width={cardWidth}
+                isFavorite={isFavorite(item)}
+                onToggleFavorite={() => toggleFavorite(item)}
+              />
             )}
             onEndReachedThreshold={0.5}
             onEndReached={loadMore}

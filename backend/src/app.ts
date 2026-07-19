@@ -1,5 +1,6 @@
 import express from "express";
 import cors from "cors";
+import { homeRouter } from "./routes/home.routes";
 import { moviesRouter } from "./routes/movies.routes";
 import { seriesRouter } from "./routes/series.routes";
 import { searchRouter } from "./routes/search.routes";
@@ -30,6 +31,7 @@ export function createApp() {
 
   // API propia de NowSee: el frontend (web/Android/iOS) solo conoce estos
   // endpoints. Ninguna API externa (TMDB, Wikidata, etc.) se expone acá.
+  app.use(homeRouter);
   app.use(moviesRouter);
   app.use(seriesRouter);
   app.use(searchRouter);

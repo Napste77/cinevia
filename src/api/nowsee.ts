@@ -36,6 +36,34 @@ export async function discover(filters: DiscoverFilters): Promise<TrendingItem[]
   return res.data.results;
 }
 
+export interface HomeRowsBundle {
+  platforms: Platform[];
+  platformRows: Record<number, TrendingItem[]>;
+  genreRows: Record<number, TrendingItem[]>;
+}
+
+/**
+ * Las filas "secundarias" del Home (plataformas + una fila por
+ * provider/género) en UNA sola request — antes eran 15 requests
+ * separados, carísimo en conexiones lentas porque cada uno paga su
+ * propio viaje de red. Tendencias se piden aparte (getTrendingByCountry)
+ * para que el Hero pinte apenas responde la primera.
+ */
+export async function getHomeRows(
+  country: string,
+  providerIds: number[],
+  genreIds: number[]
+): Promise<HomeRowsBundle> {
+  const res = await client.get("/home/rows", {
+    params: {
+      country,
+      providers: providerIds.join(","),
+      genres: genreIds.join(","),
+    },
+  });
+  return res.data;
+}
+
 export async function getTrendingByCountry(
   country: string,
   mediaType: MediaType = "movie"
@@ -43,22 +71,6 @@ export async function getTrendingByCountry(
   const path = mediaType === "movie" ? "/movies/trending" : "/series/trending";
   const res = await client.get(path, { params: { country } });
   return res.data.results;
-}
-
-export async function getByPlatform(
-  country: string,
-  providerId: number,
-  mediaType: MediaType = "movie"
-): Promise<TrendingItem[]> {
-  return discover({ mediaType, providerId, country, page: 1 });
-}
-
-export async function getByGenre(
-  country: string,
-  genreId: number,
-  mediaType: MediaType = "movie"
-): Promise<TrendingItem[]> {
-  return discover({ mediaType, genreId, country, page: 1 });
 }
 
 /** Catálogo completo paginado de una categoría (CategoryScreen: scroll infinito + filtros). */
