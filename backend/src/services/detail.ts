@@ -9,6 +9,15 @@ import { getRatingSummary, getUserRating } from "./ratings";
 import { env } from "../config/env";
 import { STALE_TTL_MS, isStale } from "../config/sync";
 
+/**
+ * La sync de media (cast/tráiler/recomendaciones) escribe decenas de filas
+ * en la MySQL remota — medido en producción: ~5 segundos bloqueando la
+ * ficha cuando le tocaba refrescar. Solo vale la pena esperarla la PRIMERA
+ * vez en la vida del título (sin ella la ficha saldría vacía); si ya hay
+ * media de una sync anterior, se responde al instante con eso y el
+ * refresh corre en background — misma estrategia stale-while-revalidate
+ * que ya usa resolveProviders (ver streamingLinks.ts).
+ */
 async function ensureMediaSynced(
   contentType: ContentType,
   contentId: number,
@@ -16,8 +25,14 @@ async function ensureMediaSynced(
   lastMediaSync: Date | null,
   detailBundle?: Awaited<ReturnType<typeof tmdbGetDetail>>
 ) {
-  if (isStale(lastMediaSync, STALE_TTL_MS.media)) {
+  if (lastMediaSync === null) {
     await syncContentMedia(contentType, contentId, tmdbId, detailBundle);
+    return;
+  }
+  if (isStale(lastMediaSync, STALE_TTL_MS.media)) {
+    syncContentMedia(contentType, contentId, tmdbId, detailBundle).catch((e) =>
+      console.error(`Error refrescando media de ${contentType} ${contentId} en background:`, e)
+    );
   }
 }
 
@@ -43,7 +58,10 @@ async function getMovieDetail(tmdbId: number, country: string, userId: number | 
   if (!movie) return null;
 
   await ensureMediaSynced("movie", movie.id, movie.tmdbId, movie.lastMediaSync, detailBundle);
-  await registerView(userId, "movie", movie.id);
+  // Estadística de perfil, no hace falta esperarla para responder la ficha.
+  registerView(userId, "movie", movie.id).catch((e) =>
+    console.error("Error registrando vista:", e)
+  );
 
   const [cast, trailerKey, similar, providers, ratingSummary, myRating] = await Promise.all([
     getCastFor("movie", movie.id),
@@ -69,7 +87,10 @@ async function getTvDetail(tmdbId: number, country: string, userId: number | nul
   if (!tvShow) return null;
 
   await ensureMediaSynced("tv", tvShow.id, tvShow.tmdbId, tvShow.lastMediaSync, detailBundle);
-  await registerView(userId, "tv", tvShow.id);
+  // Estadística de perfil, no hace falta esperarla para responder la ficha.
+  registerView(userId, "tv", tvShow.id).catch((e) =>
+    console.error("Error registrando vista:", e)
+  );
 
   const [cast, trailerKey, similar, providers, ratingSummary, myRating] = await Promise.all([
     getCastFor("tv", tvShow.id),

@@ -32,30 +32,43 @@ export async function getOrFetchMovie(tmdbId: number) {
     include: { genres: { include: { genre: true } } },
   });
 
-  if (existing && !isStale(existing.lastSync, STALE_TTL_MS.content)) {
+  if (existing) {
+    if (!isStale(existing.lastSync, STALE_TTL_MS.content)) {
+      return { movie: existing, detailBundle: undefined };
+    }
+    // Stale-while-revalidate: el refresh diario (rating/popularity) no
+    // justifica hacer esperar al usuario una llamada a TMDB — se responde
+    // con lo último conocido y se refresca en background para la próxima.
+    refreshMovieInBackground(tmdbId, existing.id);
     return { movie: existing, detailBundle: undefined };
   }
 
-  try {
-    const detailBundle = await tmdbGetDetail("movie", tmdbId);
-    const movie = await upsertMovie(detailBundle.detail, detailBundle.externalIds.imdb_id);
-    const full = await prisma.movie.findUnique({
-      where: { id: movie.id },
-      include: { genres: { include: { genre: true } } },
-    });
-    return { movie: full, detailBundle };
-  } catch (e: any) {
-    if (existing) {
-      // TMDB falló pero ya teníamos algo guardado: seguimos funcionando con
-      // lo último conocido en vez de romper la respuesta al usuario.
-      await prisma.movie.update({
-        where: { id: existing.id },
-        data: { syncStatus: "error", lastError: String(e?.message || e) },
-      });
-      return { movie: existing, detailBundle: undefined };
+  // No lo tenemos: acá sí no queda otra que esperar a TMDB.
+  const detailBundle = await tmdbGetDetail("movie", tmdbId);
+  const movie = await upsertMovie(detailBundle.detail, detailBundle.externalIds.imdb_id);
+  const full = await prisma.movie.findUnique({
+    where: { id: movie.id },
+    include: { genres: { include: { genre: true } } },
+  });
+  return { movie: full, detailBundle };
+}
+
+function refreshMovieInBackground(tmdbId: number, movieId: number) {
+  (async () => {
+    try {
+      const detailBundle = await tmdbGetDetail("movie", tmdbId);
+      await upsertMovie(detailBundle.detail, detailBundle.externalIds.imdb_id);
+    } catch (e: any) {
+      // TMDB falló: dejamos registrado el error y seguimos sirviendo lo
+      // último conocido (mismo comportamiento que tenía la versión bloqueante).
+      await prisma.movie
+        .update({
+          where: { id: movieId },
+          data: { syncStatus: "error", lastError: String(e?.message || e) },
+        })
+        .catch(() => {});
     }
-    throw e;
-  }
+  })();
 }
 
 export async function listTrendingMovies(page = 1, pageSize = PAGE_SIZE) {

@@ -26,28 +26,38 @@ export async function getOrFetchTv(tmdbId: number) {
     include: { genres: { include: { genre: true } } },
   });
 
-  if (existing && !isStale(existing.lastSync, STALE_TTL_MS.content)) {
+  if (existing) {
+    if (!isStale(existing.lastSync, STALE_TTL_MS.content)) {
+      return { tvShow: existing, detailBundle: undefined };
+    }
+    // Ver movies.ts::getOrFetchMovie — mismo stale-while-revalidate.
+    refreshTvInBackground(tmdbId, existing.id);
     return { tvShow: existing, detailBundle: undefined };
   }
 
-  try {
-    const detailBundle = await tmdbGetDetail("tv", tmdbId);
-    const tvShow = await upsertTv(detailBundle.detail, detailBundle.externalIds.imdb_id);
-    const full = await prisma.tVShow.findUnique({
-      where: { id: tvShow.id },
-      include: { genres: { include: { genre: true } } },
-    });
-    return { tvShow: full, detailBundle };
-  } catch (e: any) {
-    if (existing) {
-      await prisma.tVShow.update({
-        where: { id: existing.id },
-        data: { syncStatus: "error", lastError: String(e?.message || e) },
-      });
-      return { tvShow: existing, detailBundle: undefined };
+  const detailBundle = await tmdbGetDetail("tv", tmdbId);
+  const tvShow = await upsertTv(detailBundle.detail, detailBundle.externalIds.imdb_id);
+  const full = await prisma.tVShow.findUnique({
+    where: { id: tvShow.id },
+    include: { genres: { include: { genre: true } } },
+  });
+  return { tvShow: full, detailBundle };
+}
+
+function refreshTvInBackground(tmdbId: number, tvShowId: number) {
+  (async () => {
+    try {
+      const detailBundle = await tmdbGetDetail("tv", tmdbId);
+      await upsertTv(detailBundle.detail, detailBundle.externalIds.imdb_id);
+    } catch (e: any) {
+      await prisma.tVShow
+        .update({
+          where: { id: tvShowId },
+          data: { syncStatus: "error", lastError: String(e?.message || e) },
+        })
+        .catch(() => {});
     }
-    throw e;
-  }
+  })();
 }
 
 export async function listTrendingTv(page = 1, pageSize = PAGE_SIZE) {

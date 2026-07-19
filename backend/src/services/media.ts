@@ -44,17 +44,22 @@ async function runSyncContentMedia(
   const bundle = detailBundle ?? (await tmdbGetDetail(mediaType, tmdbId));
 
   // --- Cast ---
+  // Antes: 12 actores x 2 upserts secuenciales = 24 viajes en serie a la
+  // MySQL remota. Ahora: los 12 actores en paralelo (los deadlocks
+  // transitorios que pueda causar el paralelismo ya los cubre el
+  // withRetry de arriba — todo esto es idempotente).
   await prisma.contentCast.deleteMany({ where: { contentType, contentId } });
   const castSlice = bundle.credits.cast.slice(0, 12);
-  for (let i = 0; i < castSlice.length; i++) {
-    const c = castSlice[i];
-    const actor = await upsertCastMember(c.id, c.name, c.profile_path ?? null);
-    await prisma.contentCast.upsert({
-      where: { contentType_contentId_actorId: { contentType, contentId, actorId: actor.id } },
-      update: { character: c.character ?? null, order: i },
-      create: { contentType, contentId, actorId: actor.id, character: c.character ?? null, order: i },
-    });
-  }
+  await Promise.all(
+    castSlice.map(async (c: any, i: number) => {
+      const actor = await upsertCastMember(c.id, c.name, c.profile_path ?? null);
+      await prisma.contentCast.upsert({
+        where: { contentType_contentId_actorId: { contentType, contentId, actorId: actor.id } },
+        update: { character: c.character ?? null, order: i },
+        create: { contentType, contentId, actorId: actor.id, character: c.character ?? null, order: i },
+      });
+    })
+  );
 
   // --- Video (tráiler oficial) ---
   const trailer = bundle.videos.find((v: any) => v.site === "YouTube" && v.type === "Trailer");
@@ -87,27 +92,30 @@ async function runSyncContentMedia(
   await prisma.similarContent.deleteMany({
     where: { contentAType: contentType, contentAId: contentId },
   });
-  for (const raw of bundle.recommendations.slice(0, 12)) {
-    const related = contentType === "movie" ? await upsertMovie(raw) : await upsertTv(raw);
-    await prisma.similarContent.upsert({
-      where: {
-        contentAType_contentAId_contentBType_contentBId: {
+  // Igual que el cast: las 12 recomendaciones en paralelo en vez de en serie.
+  await Promise.all(
+    bundle.recommendations.slice(0, 12).map(async (raw: any) => {
+      const related = contentType === "movie" ? await upsertMovie(raw) : await upsertTv(raw);
+      await prisma.similarContent.upsert({
+        where: {
+          contentAType_contentAId_contentBType_contentBId: {
+            contentAType: contentType,
+            contentAId: contentId,
+            contentBType: contentType,
+            contentBId: related.id,
+          },
+        },
+        update: { score: raw.vote_average ?? 0 },
+        create: {
           contentAType: contentType,
           contentAId: contentId,
           contentBType: contentType,
           contentBId: related.id,
+          score: raw.vote_average ?? 0,
         },
-      },
-      update: { score: raw.vote_average ?? 0 },
-      create: {
-        contentAType: contentType,
-        contentAId: contentId,
-        contentBType: contentType,
-        contentBId: related.id,
-        score: raw.vote_average ?? 0,
-      },
-    });
-  }
+      });
+    })
+  );
 
   if (contentType === "movie") {
     await prisma.movie.update({ where: { id: contentId }, data: { lastMediaSync: new Date() } });
