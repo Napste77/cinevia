@@ -48,14 +48,31 @@ async function registerView(userId: number | null, contentType: ContentType, con
 
 /** `id` acá es SIEMPRE nuestro id interno (Movie.id), nunca el de TMDB. */
 export async function getMovieDetailById(id: number, country = env.defaultCountry, userId: number | null = null) {
-  const row = await prisma.movie.findUnique({ where: { id } });
+  // Una sola query (con géneros incluidos): si el título está fresco, es
+  // directamente la fila que se responde — antes se buscaba acá por id y
+  // getOrFetchMovie volvía a buscar por tmdbId (~300ms extra por el viaje
+  // a la MySQL remota).
+  const row = await prisma.movie.findUnique({
+    where: { id },
+    include: { genres: { include: { genre: true } } },
+  });
   if (!row) return null;
-  return getMovieDetail(row.tmdbId, country, userId);
+  return getMovieDetail(row, country, userId);
 }
 
-async function getMovieDetail(tmdbId: number, country: string, userId: number | null) {
-  const { movie, detailBundle } = await getOrFetchMovie(tmdbId);
-  if (!movie) return null;
+async function getMovieDetail(
+  preloaded: NonNullable<Awaited<ReturnType<typeof prisma.movie.findUnique>>> & { genres: any },
+  country: string,
+  userId: number | null
+) {
+  let movie: any = preloaded;
+  let detailBundle: Awaited<ReturnType<typeof tmdbGetDetail>> | undefined;
+  if (isStale(preloaded.lastSync, STALE_TTL_MS.content)) {
+    const fetched = await getOrFetchMovie(preloaded.tmdbId);
+    if (!fetched.movie) return null;
+    movie = fetched.movie;
+    detailBundle = fetched.detailBundle;
+  }
 
   await ensureMediaSynced("movie", movie.id, movie.tmdbId, movie.lastMediaSync, detailBundle);
   // Estadística de perfil, no hace falta esperarla para responder la ficha.
@@ -77,14 +94,28 @@ async function getMovieDetail(tmdbId: number, country: string, userId: number | 
 
 /** `id` acá es SIEMPRE nuestro id interno (TVShow.id), nunca el de TMDB. */
 export async function getTvDetailById(id: number, country = env.defaultCountry, userId: number | null = null) {
-  const row = await prisma.tVShow.findUnique({ where: { id } });
+  // Ver getMovieDetailById — misma optimización de query única.
+  const row = await prisma.tVShow.findUnique({
+    where: { id },
+    include: { genres: { include: { genre: true } } },
+  });
   if (!row) return null;
-  return getTvDetail(row.tmdbId, country, userId);
+  return getTvDetail(row, country, userId);
 }
 
-async function getTvDetail(tmdbId: number, country: string, userId: number | null) {
-  const { tvShow, detailBundle } = await getOrFetchTv(tmdbId);
-  if (!tvShow) return null;
+async function getTvDetail(
+  preloaded: NonNullable<Awaited<ReturnType<typeof prisma.tVShow.findUnique>>> & { genres: any },
+  country: string,
+  userId: number | null
+) {
+  let tvShow: any = preloaded;
+  let detailBundle: Awaited<ReturnType<typeof tmdbGetDetail>> | undefined;
+  if (isStale(preloaded.lastSync, STALE_TTL_MS.content)) {
+    const fetched = await getOrFetchTv(preloaded.tmdbId);
+    if (!fetched.tvShow) return null;
+    tvShow = fetched.tvShow;
+    detailBundle = fetched.detailBundle;
+  }
 
   await ensureMediaSynced("tv", tvShow.id, tvShow.tmdbId, tvShow.lastMediaSync, detailBundle);
   // Estadística de perfil, no hace falta esperarla para responder la ficha.

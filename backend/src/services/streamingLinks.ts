@@ -69,6 +69,31 @@ export async function resolveProviders(
   const results: ResolvedProvider[] = [];
   const pending: PendingResolution[] = [];
 
+  // Antes este bloque hacía, EN SERIE y por cada plataforma del título,
+  // un platform.findUnique + un streamingLink.findUnique — con 4-5
+  // plataformas eran ~10 viajes seriales a la MySQL remota (~300ms cada
+  // uno desde Render a Hostinger: varios segundos solo acá). Ahora:
+  // el catálogo de plataformas sale de una sola query (y el resto se
+  // resuelve en memoria) y todos los streaming_links del título salen en
+  // UNA query batcheada.
+  const curated = flatrate
+    .map((p: any) => ({ p, platformDef: getPlatformByTmdbId(p.provider_id) }))
+    .filter((x: any) => x.platformDef);
+
+  const slugs = curated.map((x: any) => x.platformDef!.slug);
+  const platformRows = slugs.length
+    ? await prisma.platform.findMany({ where: { slug: { in: slugs } } })
+    : [];
+  const platformBySlug = new Map<string, any>(platformRows.map((r: any) => [r.slug, r]));
+
+  const platformIds: number[] = platformRows.map((r: any) => r.id);
+  const links = platformIds.length
+    ? await prisma.streamingLink.findMany({
+        where: { contentType, contentId, country, platformId: { in: platformIds } },
+      })
+    : [];
+  const linkByPlatformId = new Map<number, any>(links.map((l: any) => [l.platformId, l]));
+
   for (const p of flatrate) {
     const platformDef = getPlatformByTmdbId(p.provider_id);
 
@@ -83,19 +108,10 @@ export async function resolveProviders(
       continue;
     }
 
-    const platformRow = await prisma.platform.findUnique({ where: { slug: platformDef.slug } });
+    const platformRow = platformBySlug.get(platformDef.slug);
     if (!platformRow) continue;
 
-    const existing = await prisma.streamingLink.findUnique({
-      where: {
-        content_platform_country: {
-          contentType,
-          contentId,
-          platformId: platformRow.id,
-          country,
-        },
-      },
-    });
+    const existing = linkByPlatformId.get(platformRow.id);
 
     const ttl = existing?.verified ? VERIFIED_TTL_MS : UNVERIFIED_RETRY_TTL_MS;
     if (existing && isFresh(existing.lastChecked, ttl)) {
