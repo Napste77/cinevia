@@ -21,7 +21,13 @@ async function getPlatformIdMap(): Promise<Map<number, number>> {
     return platformIdCache.data;
   }
   const rows = await prisma.platform.findMany({ select: { id: true, tmdbId: true } });
-  const data = new Map<number, number>(rows.map((r: { id: number; tmdbId: number }) => [r.tmdbId, r.id]));
+  // tmdbId es nullable en el schema: las plataformas sin id de TMDB no
+  // pueden entrar al mapa (y tampoco tendría sentido buscarlas por él).
+  const data = new Map<number, number>(
+    rows
+      .filter((r: { id: number; tmdbId: number | null }) => r.tmdbId !== null)
+      .map((r: { id: number; tmdbId: number | null }) => [r.tmdbId as number, r.id])
+  );
   platformIdCache = { data, expiresAt: Date.now() + CACHE_TTL_MS };
   return data;
 }
