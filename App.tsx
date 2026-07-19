@@ -1,4 +1,4 @@
-import React, { Suspense, lazy, useEffect } from "react";
+import React, { useEffect } from "react";
 import { View, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
 import { NavigationContainer, LinkingOptions, useNavigationContainerRef } from "@react-navigation/native";
@@ -15,23 +15,28 @@ import {
   Inter_600SemiBold,
 } from "@expo-google-fonts/inter";
 import HomeScreen from "./src/screens/HomeScreen";
+import SearchScreen from "./src/screens/SearchScreen";
+import DetailScreen from "./src/screens/DetailScreen";
+import MyListScreen from "./src/screens/MyListScreen";
+import ProfileScreen from "./src/screens/ProfileScreen";
+import CategoryScreen from "./src/screens/CategoryScreen";
+import AuthScreen from "./src/screens/AuthScreen";
 import { colors } from "./src/theme";
 import { AuthProvider } from "./src/context/AuthContext";
 import { RegionProvider } from "./src/context/RegionContext";
 import { FavoritesProvider } from "./src/context/FavoritesContext";
 import { isCapacitorNative } from "./src/api/deepLinks";
 
-// Solo Home viaja en el bundle inicial (es la pantalla de entrada, así que
-// cargarla eager no cuesta nada extra). El resto se separa en chunks
-// propios que Metro solo baja cuando el usuario navega ahí de verdad —
-// evita que alguien que solo mira el Home descargue también Detalle,
-// Perfil, Auth, etc.
-const SearchScreen = lazy(() => import("./src/screens/SearchScreen"));
-const DetailScreen = lazy(() => import("./src/screens/DetailScreen"));
-const MyListScreen = lazy(() => import("./src/screens/MyListScreen"));
-const ProfileScreen = lazy(() => import("./src/screens/ProfileScreen"));
-const CategoryScreen = lazy(() => import("./src/screens/CategoryScreen"));
-const AuthScreen = lazy(() => import("./src/screens/AuthScreen"));
+// NOTA: acá hubo un intento de separar cada pantalla en su propio chunk
+// con React.lazy(() => import(...)) para bajar el peso del bundle inicial.
+// Se revirtió: `expo export --platform web` (sin expo-router) SÍ genera
+// los archivos separados con un mapeo módulo→URL correcto, pero el loader
+// async de Metro para web no los baja por red antes de requerirlos —
+// tira "Requiring unknown module" y deja la pantalla en blanco en
+// producción. Falla sistemáticamente en cualquier pantalla que no sea
+// Home. Si se quiere retomar el code-splitting, hace falta expo-router
+// (que sí arma el loader async completo) o confirmar con un test end to
+// end real de navegación — no alcanza con verificar que Home renderiza.
 
 const Stack = createNativeStackNavigator();
 
@@ -122,17 +127,15 @@ export default function App() {
         <FavoritesProvider>
           <NavigationContainer ref={navigationRef} linking={linking}>
             <StatusBar style="light" />
-            <Suspense fallback={<View style={{ flex: 1, backgroundColor: colors.surface }} />}>
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="Home" component={HomeScreen} />
-                <Stack.Screen name="Search" component={SearchScreen} />
-                <Stack.Screen name="Detail" component={DetailScreen} />
-                <Stack.Screen name="MyList" component={MyListScreen} />
-                <Stack.Screen name="Profile" component={ProfileScreen} />
-                <Stack.Screen name="Category" component={CategoryScreen} />
-                <Stack.Screen name="Auth" component={AuthScreen} />
-              </Stack.Navigator>
-            </Suspense>
+            <Stack.Navigator screenOptions={{ headerShown: false }}>
+              <Stack.Screen name="Home" component={HomeScreen} />
+              <Stack.Screen name="Search" component={SearchScreen} />
+              <Stack.Screen name="Detail" component={DetailScreen} />
+              <Stack.Screen name="MyList" component={MyListScreen} />
+              <Stack.Screen name="Profile" component={ProfileScreen} />
+              <Stack.Screen name="Category" component={CategoryScreen} />
+              <Stack.Screen name="Auth" component={AuthScreen} />
+            </Stack.Navigator>
           </NavigationContainer>
         </FavoritesProvider>
       </RegionProvider>
