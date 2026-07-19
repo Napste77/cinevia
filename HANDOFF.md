@@ -316,16 +316,59 @@ También se creó un cronjob en cron-job.org (`NowSee API keep-alive`,
 cada 2 minutos contra `/health`) para evitar el cold start del plan free
 de Render — ver 3.3 para el detalle de por qué hacía falta.
 
+## 3.5. Ronda "la ficha tarda demasiado" (medida, arreglada y verificada en prod)
+
+Reporte del usuario: entrar a una película/serie seguía lento. Medido con
+Chrome contra producción: `GET /movie/2` tardaba **5.2s** (con Render
+despierto — el keep-alive de 3.4 ya estaba activo, no era cold start).
+
+Hallazgos, en orden de descubrimiento:
+
+1. **La sync de media bloqueaba la respuesta**: cuando al título le tocaba
+   refrescar cast/tráiler/recomendaciones (TTL 7 días) o el detalle (24h),
+   la ficha esperaba ~50 escrituras SECUENCIALES a la MySQL remota + una
+   llamada a TMDB. Fix: solo se bloquea la PRIMERA visita de la vida del
+   título; si ya hay media, responde ya y refresca en background
+   (stale-while-revalidate). El camino que sigue bloqueando (primera
+   visita) ahora escribe en paralelo. `registerView` pasó a fire-and-forget.
+2. **resolveProviders hacía 2 queries seriales por plataforma** (~10
+   viajes con 4-5 plataformas). Fix: 1 findMany batcheado para links + el
+   catálogo de plataformas desde el cache en memoria de services/platforms.
+3. **Lookup duplicado**: la ruta buscaba el título por id y getOrFetch lo
+   volvía a buscar por tmdbId. Fix: una sola query con géneros incluidos.
+4. **Las queries del detalle arrancaban tarde**: cast/similares/ratings/
+   providers solo necesitan el id interno (que ya está en la URL) — ahora
+   se disparan en paralelo con todo lo demás (con `fireEarly()` para no
+   crashear Node >=15 por unhandledRejection).
+5. **CRÍTICO — Render no despliega desde `main`**: el servicio trackea la
+   rama `claude/app-install-option-missing-mozug7`. Los pushes a main del
+   backend NO llegaban a producción. Además el deploy de `96fc2a3` había
+   FALLADO por un error de tipos (`Platform.tmdbId` es nullable) que el
+   sandbox no podía detectar (sin cliente de Prisma generado), así que
+   producción llevaba un día corriendo la versión vieja. Se arregló el
+   tipo y por ahora se pushea a AMBAS ramas. **Pendiente: cambiar la rama
+   trackeada a `main` en Render → Settings → Build & Deploy.**
+
+Resultado medido en producción tras los deploys: ficha de **5-6s a
+~1.3-2.3s** en estado estable. El piso restante es infraestructura, no
+código: cada round-trip Render (Oregón) ↔ MySQL Hostinger cuesta ~280ms
+(un 404 de una sola query tarda 242-283ms). Para bajar de ahí hay que
+acercar la base al backend (o viceversa): mover MySQL a un proveedor con
+región cercana a Render, o el backend a un VPS de Hostinger junto a la
+base. Documentado como decisión de infra pendiente, no de código.
+
 ## 4. Estado actual / próximos pasos sugeridos
 
 - [ ] Confirmar en el sitio real (Netlify) que la carga se siente más
       rápida con los cambios de performance — el usuario todavía no lo
       probó después del último batch de commits.
-- [ ] **Alta prioridad, no es código**: configurar un cron externo que le
-      pegue a `GET https://nowsee-api.onrender.com/health` cada 10-14 min
-      (o pasar Render a un plan pago) para evitar el cold start de 50+ seg
-      del plan free — ver 3.3, probablemente la causa principal de la
-      lentitud reportada.
+- [x] Cron keep-alive configurado en cron-job.org (cada 2 min a `/health`).
+- [ ] **Alta prioridad**: cambiar la rama de deploy de Render a `main`
+      (Settings → Build & Deploy → Branch). Hoy trackea
+      `claude/app-install-option-missing-mozug7` y los pushes a main no
+      llegan al backend — ver 3.5, punto 5.
+- [ ] Decidir la mudanza de infra para bajar la latencia de ~280ms por
+      query entre Render (Oregón) y la MySQL de Hostinger — ver 3.5.
 - [ ] Correr `npx capacitor-assets generate --android` localmente para
       tener íconos/splash reales.
 - [ ] Abrir `android/` en Android Studio y generar un primer APK de
