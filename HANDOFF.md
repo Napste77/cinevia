@@ -432,10 +432,9 @@ como respaldo/rollback; no se decidió aún si dar de baja el hosting.
 - [x] Decidir y ejecutar la mudanza de infra para bajar la latencia entre
       Render y la base de datos — ver 3.6. Se migró a Aiven MySQL (free
       tier), ficha bajó de ~1.3-2.3s a ~220-250ms.
-- [ ] Crear un segundo cron job en cron-job.org (cada 2 min) contra un
-      endpoint que consulte la base real (ej. `/movies/trending?country=AR`),
-      para evitar que Aiven apague el servicio free por inactividad — ver
-      3.6. El cron existente pega a `/health`, que no toca la DB.
+- [x] Segundo cron job creado en cron-job.org: "Aiven keep-alive (DB
+      query)", cada 2 min, contra `/movies/trending?country=AR` (sí toca
+      la DB, a diferencia de `/health`) — ver 3.6.
 - [ ] Evaluar si conviene dar de baja o mantener la MySQL de Hostinger
       como respaldo ahora que Aiven es la base productiva.
 - [ ] Correr `npx capacitor-assets generate --android` localmente para
