@@ -606,3 +606,53 @@ con combinaciones nuevas sin cachear (Netflix + Documentales, Netflix +
 Serie + Documentales) y cargaron bien; revisados los logs de Render post-
 deploy sin ningún P2034 nuevo.
 
+## 6.2. Testing integral (item 8) — resultado
+
+QA manual en producción (`nowsee.netlify.app`), con cuenta de prueba
+nueva creada para la ocasión. Resultado por punto:
+
+- **Registro**: ok. Cuenta nueva creada, auto-login inmediato tras crear
+  cuenta, perfil muestra nombre/email correctos.
+- **Login / Logout**: ok. Logout vuelve a estado "Invitado"; login con
+  la misma cuenta recupera sesión y datos (Mi Lista, Ya lo vi) intactos.
+- **Persistencia de sesión**: ok. Reload completo de página (F5, no
+  navegación SPA) mantiene la sesión y el estado de Mi Lista/Ya lo vi.
+- **Mi Lista / Ya lo vi**: ok. Agregar/marcar desde `MediaCard` en Home
+  se refleja al instante en `Mi Lista`; el filtro Todos/Vistos/No vistos
+  funciona correctamente.
+- **Navegación**: ok entre Explorar, Buscar, Mi Lista, Perfil, categorías
+  de plataforma y fichas de detalle.
+- **Scroll**: ok. Verificado que se llega al final tanto en una ficha
+  larga (elenco → calificación → plataformas → recomendaciones) como en
+  una página de categoría con grilla completa.
+- **Filtros**: ok. Slider de año por rango, género, tipo (película/serie)
+  y orden combinan correctamente en páginas de plataforma.
+- **Plataformas + Links externos**: ok. Verificado con un segundo
+  ejemplo en vivo (Netflix): el botón "Disponible en" abrió directamente
+  `netflix.com/title/81763251` (ID real vía Wikidata), no una búsqueda.
+- **Carga de imágenes**: mayormente ok; algunos títulos muy nuevos/nicho
+  (ej. "Backrooms") no tienen poster en TMDB y se ven con fondo sólido —
+  es un hueco de datos de origen, no un bug de carga.
+- **Búsquedas**: ok, resultados relevantes y rápidos.
+- **Paginación**: no implementada — las páginas de categoría cargan un
+  único lote (~20 resultados TMDB) y no tienen "cargar más"/scroll
+  infinito. No es un bug (no estaba pedido explícitamente), pero queda
+  anotado como posible mejora futura si se quiere paridad con
+  Letterboxd/JustWatch.
+- **Consola sin errores JS/red**: ok en todas las pantallas visitadas
+  tras el fix de la sección 6.1 (antes del fix, esta era justamente la
+  fuente de los 500 intermitentes).
+- **Responsive/Desktop/Mobile**: revisado por código (`AppShell` separa
+  layout mobile/desktop, ya con el fix de `minHeight:0` de 6); no se
+  pudo forzar un viewport angosto real en este entorno de testing
+  (la ventana del navegador remoto no permite redimensionar por debajo
+  de su tamaño de escritorio), así que el layout mobile no quedó
+  re-verificado visualmente en esta ronda puntual — sí lo estaba en las
+  rondas de performance anteriores (Capacitor/Android, sección 3).
+- **Recuperar contraseña**: excluido de esta ronda — depende del punto 2
+  (emails), que sigue pendiente de la API key de Resend.
+
+Conclusión: los 6 puntos técnicos completados en 6.1 quedan verificados
+en producción sin regresiones. Solo restan los emails (bloqueado por
+credencial) para poder cerrar el punto 8 al 100%.
+
