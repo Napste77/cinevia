@@ -156,7 +156,7 @@ export default function DetailScreen({ route, navigation }: any) {
                 onPress={() => toggleViewed({ ...data, id: data.id, media_type: data.media_type })}
               >
                 <MaterialIcons
-                  name={viewed ? "visibility" : ("visibility-outline" as any)}
+                  name="visibility"
                   size={18}
                   color={viewed ? colors.onSurface : colors.onSurface}
                 />

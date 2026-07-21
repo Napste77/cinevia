@@ -93,7 +93,7 @@ function MediaCard({
               hitSlop={8}
             >
               <MaterialIcons
-                name={viewed ? "visibility" : "visibility-outline" as any}
+                name="visibility"
                 size={16}
                 color={viewed ? colors.onPrimaryContainer : colors.onSurface}
               />
