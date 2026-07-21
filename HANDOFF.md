@@ -357,6 +357,67 @@ acercar la base al backend (o viceversa): mover MySQL a un proveedor con
 región cercana a Render, o el backend a un VPS de Hostinger junto a la
 base. Documentado como decisión de infra pendiente, no de código.
 
+### 3.6. Migración de base de datos: Hostinger MySQL → Aiven MySQL (free tier)
+
+El piso de latencia de ~250-280ms por query (documentado en 3.5) era la
+distancia de red entre Render (Oregón, EE.UU.) y el hosting compartido de
+Hostinger (fuera de EE.UU.). Se evaluaron opciones (mover el backend a un
+VPS de Hostinger, Supabase, PlanetScale, Aiven) y se decidió con el
+usuario: **Aiven for MySQL, tier gratuito**, con un servicio en una región
+cercana a Oregón.
+
+**Riesgo aceptado explícitamente por el usuario**: el tier free de Aiven
+apaga el servicio automáticamente tras un período de inactividad (no hay
+threshold exacto documentado por Aiven). El tier "Developer" ($5/mes) evita
+esto, pero se descartó por costo. Mitigación acordada: mantener el cron
+job de cron-job.org pegándole al sitio cada 2 minutos, agregando un
+segundo cron a un endpoint que sí toque la base de datos (el de `/health`
+no la toca), para evitar que Aiven la apague por inactividad.
+
+**Cómo se migraron los datos**: ni el sandbox ni el navegador pueden
+alcanzar `aivencloud.com` ni el puerto MySQL de Hostinger directamente
+(bloqueados por el allowlist del proxy de red). Pero Render sí tiene
+acceso completo a ambas bases. Solución: se agregó temporalmente un router
+(`backend/src/routes/migrate.routes.ts`) con tres endpoints protegidos por
+el mismo header `X-Sync-Secret` que ya usaba el proyecto:
+
+- `POST /internal/migrate/schema` — corre `prisma migrate deploy` contra
+  `TARGET_DATABASE_URL` (Aiven) para crear el schema.
+- `POST /internal/migrate/copy` — lee todas las filas de las 23 tablas
+  desde la fuente (Hostinger, cliente Prisma default) y las inserta en el
+  destino (Aiven, segundo `PrismaClient` apuntando a `TARGET_DATABASE_URL`)
+  en lotes de 200, con `FOREIGN_KEY_CHECKS=0` durante la copia.
+- `GET /internal/migrate/verify` — compara `COUNT(*)` de cada tabla entre
+  ambas bases.
+
+Se invocaron los tres desde el navegador (`fetch` a la URL pública de
+Render), porque el navegador tampoco puede pegarle directo a MySQL pero sí
+puede pegarle a la API pública de Render, que internamente sí tiene
+acceso a ambas bases.
+
+**Resultado de la copia**: las 23 tablas migraron con `match: true` en la
+verificación (conteos idénticos origen/destino). Dato relevante: todas las
+tablas de usuarios (favoritos, ratings, comentarios, cuentas) están en 0
+filas en producción — no hay uso real todavía, así que no hubo riesgo de
+pérdida de datos de usuarios.
+
+**Corte productivo**: se cambió `DATABASE_URL` en Render (Settings →
+Environment) al connection string de Aiven, se sacó `TARGET_DATABASE_URL`
+(ya no hace falta) y se re-desplegó. Se verificó en caliente contra
+producción:
+
+- `GET /movies/trending` con datos reales: 832ms en frío, luego ~200ms.
+- `GET /movies/:id` (ficha): **222-247ms** contra Aiven, vs. los
+  ~1.3-2.3s que daba contra Hostinger en la ronda de 3.5. La mejora
+  confirma que la distancia de red era efectivamente el cuello de botella
+  dominante.
+
+**Limpieza pendiente/hecha**: se eliminó `backend/src/routes/migrate.routes.ts`
+y su registro en `app.ts` una vez verificada la migración (este código era
+explícitamente temporal). La base de Hostinger se deja intacta por ahora
+como respaldo/rollback; no se decidió aún si dar de baja el hosting.
+
+
 ## 4. Estado actual / próximos pasos sugeridos
 
 - [ ] Confirmar en el sitio real (Netlify) que la carga se siente más
@@ -367,8 +428,15 @@ base. Documentado como decisión de infra pendiente, no de código.
       (Settings → Build & Deploy → Branch). Hoy trackea
       `claude/app-install-option-missing-mozug7` y los pushes a main no
       llegan al backend — ver 3.5, punto 5.
-- [ ] Decidir la mudanza de infra para bajar la latencia de ~280ms por
-      query entre Render (Oregón) y la MySQL de Hostinger — ver 3.5.
+- [x] Decidir y ejecutar la mudanza de infra para bajar la latencia entre
+      Render y la base de datos — ver 3.6. Se migró a Aiven MySQL (free
+      tier), ficha bajó de ~1.3-2.3s a ~220-250ms.
+- [ ] Crear un segundo cron job en cron-job.org (cada 2 min) contra un
+      endpoint que consulte la base real (ej. `/movies/trending?country=AR`),
+      para evitar que Aiven apague el servicio free por inactividad — ver
+      3.6. El cron existente pega a `/health`, que no toca la DB.
+- [ ] Evaluar si conviene dar de baja o mantener la MySQL de Hostinger
+      como respaldo ahora que Aiven es la base productiva.
 - [ ] Correr `npx capacitor-assets generate --android` localmente para
       tener íconos/splash reales.
 - [ ] Abrir `android/` en Android Studio y generar un primer APK de

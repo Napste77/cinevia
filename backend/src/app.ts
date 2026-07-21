@@ -9,7 +9,6 @@ import { genresRouter } from "./routes/genres.routes";
 import { discoverRouter } from "./routes/discover.routes";
 import { providersRouter } from "./routes/providers.routes";
 import { internalRouter } from "./routes/internal.routes";
-import { migrateRouter } from "./routes/migrate.routes";
 import { authRouter } from "./routes/auth.routes";
 import { geoRouter } from "./routes/geo.routes";
 import { ratingsRouter } from "./routes/ratings.routes";
@@ -41,7 +40,6 @@ export function createApp() {
   app.use(discoverRouter);
   app.use(providersRouter);
   app.use(internalRouter);
-  app.use(migrateRouter); // TEMPORAL — ver HANDOFF.md, se saca apenas termina la migración a Aiven
   app.use(authRouter);
   app.use(geoRouter);
   app.use(ratingsRouter);
