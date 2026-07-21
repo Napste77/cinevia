@@ -232,5 +232,5 @@ export default function HomeScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  scroll: { flex: 1, backgroundColor: colors.surface },
+  scroll: { flex: 1, minHeight: 0, backgroundColor: colors.surface },
 });

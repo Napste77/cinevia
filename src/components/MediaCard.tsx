@@ -14,29 +14,35 @@ import RatingBadge from "./RatingBadge";
 const CARD_WIDTH = 160;
 
 /**
- * `isFavorite`/`onToggleFavorite` llegan resueltos por prop (en vez de
- * llamar useFavorites() acá adentro): así, cuando se togglea un favorito
- * en cualquier parte de la app, solo la ÚNICA card cuyo estado cambió de
- * verdad vuelve a renderizar (ver el comparador de React.memo más abajo)
- * en vez de las ~300 que puede haber montadas en el Home a la vez.
+ * `isFavorite`/`onToggleFavorite` (y `isViewed`/`onToggleViewed`) llegan
+ * resueltos por prop (en vez de llamar useFavorites()/useViews() acá
+ * adentro): así, cuando se togglea uno en cualquier parte de la app, solo
+ * la ÚNICA card cuyo estado cambió de verdad vuelve a renderizar (ver el
+ * comparador de React.memo más abajo) en vez de las ~300 que puede haber
+ * montadas en el Home a la vez.
  */
 function MediaCard({
   item,
   onPress,
   isFavorite,
   onToggleFavorite,
+  isViewed,
+  onToggleViewed,
   width = CARD_WIDTH,
 }: {
   item: TrendingItem;
   onPress: () => void;
   isFavorite: boolean;
   onToggleFavorite: () => void;
+  isViewed?: boolean;
+  onToggleViewed?: () => void;
   width?: number;
 }) {
   const [hovered, setHovered] = useState(false);
   const uri = item.poster_path;
   const year = item.release_date ? item.release_date.slice(0, 4) : null;
   const fav = isFavorite;
+  const viewed = !!isViewed;
 
   return (
     <Pressable
@@ -55,10 +61,10 @@ function MediaCard({
         {uri ? (
           <Image
             source={{ uri }}
-            style={[styles.poster, hovered && styles.posterHover]}
+            style={[styles.poster, viewed && styles.posterViewed, hovered && styles.posterHover]}
           />
         ) : (
-          <View style={[styles.poster, styles.placeholder]}>
+          <View style={[styles.poster, styles.placeholder, viewed && styles.posterViewed]}>
             <Text style={styles.placeholderText}>{item.title}</Text>
           </View>
         )}
@@ -70,20 +76,44 @@ function MediaCard({
         <View style={styles.ratingWrap}>
           <RatingBadge value={item.vote_average} />
         </View>
-        <Pressable
-          style={[styles.favoriteButton, fav && styles.favoriteButtonActive]}
-          onPress={(e: any) => {
-            e.stopPropagation?.();
-            onToggleFavorite();
-          }}
-          hitSlop={8}
-        >
-          <MaterialIcons
-            name={fav ? "check" : "add"}
-            size={18}
-            color={fav ? colors.onPrimaryContainer : colors.onSurface}
-          />
-        </Pressable>
+        {viewed && (
+          <View style={styles.viewedBadge} pointerEvents="none">
+            <MaterialIcons name="visibility" size={12} color={colors.onSurface} />
+            <Text style={styles.viewedBadgeText}>Visto</Text>
+          </View>
+        )}
+        <View style={styles.actionsRow}>
+          {onToggleViewed && (
+            <Pressable
+              style={[styles.actionButton, viewed && styles.viewedButtonActive]}
+              onPress={(e: any) => {
+                e.stopPropagation?.();
+                onToggleViewed();
+              }}
+              hitSlop={8}
+            >
+              <MaterialIcons
+                name={viewed ? "visibility" : "visibility-outline" as any}
+                size={16}
+                color={viewed ? colors.onPrimaryContainer : colors.onSurface}
+              />
+            </Pressable>
+          )}
+          <Pressable
+            style={[styles.actionButton, fav && styles.favoriteButtonActive]}
+            onPress={(e: any) => {
+              e.stopPropagation?.();
+              onToggleFavorite();
+            }}
+            hitSlop={8}
+          >
+            <MaterialIcons
+              name={fav ? "check" : "add"}
+              size={18}
+              color={fav ? colors.onPrimaryContainer : colors.onSurface}
+            />
+          </Pressable>
+        </View>
       </View>
       <Text style={styles.title} numberOfLines={1}>
         {item.title}
@@ -106,6 +136,7 @@ const styles = StyleSheet.create({
     borderColor: "rgba(160,216,0,0.5)",
   },
   poster: { width: "100%", height: "100%" },
+  posterViewed: { opacity: 0.55 },
   posterHover: {
     // @ts-ignore - transform de escala solo se aprecia en web con transition css
     transform: [{ scale: 1.04 }],
@@ -136,10 +167,31 @@ const styles = StyleSheet.create({
     fontFamily: fonts.label,
   },
   ratingWrap: { position: "absolute", top: 8, right: 8 },
-  favoriteButton: {
+  viewedBadge: {
+    position: "absolute",
+    bottom: 44,
+    left: 8,
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 4,
+    backgroundColor: "rgba(12,19,36,0.85)",
+    borderRadius: radii.sm,
+    paddingHorizontal: 6,
+    paddingVertical: 2,
+  },
+  viewedBadgeText: {
+    color: colors.onSurface,
+    fontSize: 10,
+    fontFamily: fonts.label,
+  },
+  actionsRow: {
     position: "absolute",
     bottom: 8,
     right: 8,
+    flexDirection: "row",
+    gap: 6,
+  },
+  actionButton: {
     width: 28,
     height: 28,
     borderRadius: 14,
@@ -148,6 +200,7 @@ const styles = StyleSheet.create({
     alignItems: "center",
   },
   favoriteButtonActive: { backgroundColor: colors.primaryContainer },
+  viewedButtonActive: { backgroundColor: colors.secondaryContainer },
   title: {
     color: colors.onSurface,
     fontFamily: fonts.label,
@@ -162,13 +215,18 @@ const styles = StyleSheet.create({
   },
 });
 
-// onPress/onToggleFavorite se recrean en cada render del padre (son
-// closures inline) pero siempre apuntan al mismo `item` — comparar su
-// identidad haría que el memo nunca "pegue". Lo que sí importa para el
-// resultado visual es item/isFavorite/width, así que el comparador mira
-// solo eso.
+// onPress/onToggleFavorite/onToggleViewed se recrean en cada render del
+// padre (son closures inline) pero siempre apuntan al mismo `item` — comparar
+// su identidad haría que el memo nunca "pegue". Lo que sí importa para el
+// resultado visual es item/isFavorite/isViewed/width, así que el
+// comparador mira solo eso.
 function areEqual(prev: Readonly<Parameters<typeof MediaCard>[0]>, next: Readonly<Parameters<typeof MediaCard>[0]>) {
-  return prev.item === next.item && prev.isFavorite === next.isFavorite && prev.width === next.width;
+  return (
+    prev.item === next.item &&
+    prev.isFavorite === next.isFavorite &&
+    prev.isViewed === next.isViewed &&
+    prev.width === next.width
+  );
 }
 
 export default React.memo(MediaCard, areEqual);

@@ -72,3 +72,22 @@ export async function syncFavorites(items: TrendingItem[]): Promise<TrendingItem
   const res = await client.post("/favorites/sync", { items });
   return res.data.results;
 }
+
+export async function getViews(): Promise<TrendingItem[]> {
+  const res = await client.get("/views");
+  return res.data.results;
+}
+
+export async function markViewed(mediaType: MediaType, id: number): Promise<void> {
+  await client.post("/views", { type: mediaType, id });
+}
+
+export async function unmarkViewed(mediaType: MediaType, id: number): Promise<void> {
+  await client.delete(`/views/${mediaType}/${id}`);
+}
+
+/** Sube la lista local (anónima) de "vistos" al loguearse y devuelve la ya fusionada. */
+export async function syncViews(items: TrendingItem[]): Promise<TrendingItem[]> {
+  const res = await client.post("/views/sync", { items });
+  return res.data.results;
+}

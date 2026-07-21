@@ -25,6 +25,7 @@ import { colors } from "./src/theme";
 import { AuthProvider } from "./src/context/AuthContext";
 import { RegionProvider } from "./src/context/RegionContext";
 import { FavoritesProvider } from "./src/context/FavoritesContext";
+import { ViewsProvider } from "./src/context/ViewsContext";
 import { isCapacitorNative } from "./src/api/deepLinks";
 
 // NOTA: acá hubo un intento de separar cada pantalla en su propio chunk
@@ -125,18 +126,20 @@ export default function App() {
     <AuthProvider>
       <RegionProvider>
         <FavoritesProvider>
-          <NavigationContainer ref={navigationRef} linking={linking}>
-            <StatusBar style="light" />
-            <Stack.Navigator screenOptions={{ headerShown: false }}>
-              <Stack.Screen name="Home" component={HomeScreen} />
-              <Stack.Screen name="Search" component={SearchScreen} />
-              <Stack.Screen name="Detail" component={DetailScreen} />
-              <Stack.Screen name="MyList" component={MyListScreen} />
-              <Stack.Screen name="Profile" component={ProfileScreen} />
-              <Stack.Screen name="Category" component={CategoryScreen} />
-              <Stack.Screen name="Auth" component={AuthScreen} />
-            </Stack.Navigator>
-          </NavigationContainer>
+          <ViewsProvider>
+            <NavigationContainer ref={navigationRef} linking={linking}>
+              <StatusBar style="light" />
+              <Stack.Navigator screenOptions={{ headerShown: false }}>
+                <Stack.Screen name="Home" component={HomeScreen} />
+                <Stack.Screen name="Search" component={SearchScreen} />
+                <Stack.Screen name="Detail" component={DetailScreen} />
+                <Stack.Screen name="MyList" component={MyListScreen} />
+                <Stack.Screen name="Profile" component={ProfileScreen} />
+                <Stack.Screen name="Category" component={CategoryScreen} />
+                <Stack.Screen name="Auth" component={AuthScreen} />
+              </Stack.Navigator>
+            </NavigationContainer>
+          </ViewsProvider>
         </FavoritesProvider>
       </RegionProvider>
     </AuthProvider>

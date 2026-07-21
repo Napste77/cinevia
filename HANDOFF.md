@@ -455,3 +455,102 @@ propósito. Las que hacen falta (TMDB, Streaming Availability, credenciales
 de la MySQL de Hostinger, `JWT_SECRET`/`SYNC_SECRET`) viven como variables
 de entorno en Render (backend) y Netlify (frontend) — nunca en el repo. Ver
 `backend/README.md` para la lista completa de env vars necesarias.
+
+## 6. Ronda de funcionalidad post-migración (auth, Ya lo vi, scroll, filtros, links)
+
+Pedido explícito del usuario tras la ronda de performance/infra: 8 puntos.
+Estado de cada uno:
+
+**1. Bug de login/registro** — investigado a fondo: se reprodujo el flujo
+completo (registro → agregar a Mi Lista → logout → login) contra
+producción con una cuenta de prueba y funcionó de punta a punta sin
+problemas. Se revisó también la MySQL vieja de Hostinger (users,
+user_favorites, user_sessions, user_views, user_ratings, user_comments):
+las 6 tablas están en 0 filas, así que no quedó ninguna cuenta "huérfana"
+de la migración a Aiven para rescatar — no hubo pérdida de datos. La
+conclusión más probable es que el bug reportado ocurrió durante la
+ventana de inestabilidad ya documentada en 3.4/3.5 (deploy viejo
+sirviendo código roto, regresión de pantalla en blanco), ambas ya
+resueltas. No se tocó código de auth (estaba sano: bcrypt para
+passwords, JWT + refresh token rotativo con hash SHA-256, todo verificado
+línea por línea).
+
+**2. Emails automáticos (bienvenida + recuperar contraseña)** — pendiente:
+requiere una API key de Resend (decisión tomada con el usuario: Resend,
+plan gratis). No implementado todavía en este commit.
+
+**3. "Ya lo vi"** — implementado. El modelo `UserView` ya existía en el
+schema (se usaba solo para estadísticas, marcando automático al abrir una
+ficha). Se agregó marca/desmarca manual: `backend/src/services/views.ts`
++ `routes/views.routes.ts` (`GET/POST /views`, `DELETE /views/:type/:id`,
+`POST /views/sync` — mismo patrón que favoritos). Frontend:
+`ViewsContext.tsx` (mismo patrón que `FavoritesContext`, con fallback
+local para anónimos), botón "Ya lo vi" en `MediaCard` y en el header de
+`DetailScreen`, badge visual "Visto" + poster atenuado, y filtro
+Todos/Vistos/No vistos en `MyListScreen`.
+
+**4. Scroll bloqueado** — causa raíz encontrada: `AppShell.tsx` (el marco
+que envuelve TODAS las pantallas) tenía `desktopContent: { flex: 1,
+minWidth: 0 }` sin `minHeight: 0` — el bug clásico de flexbox en web
+donde un hijo flex dentro de un contenedor `flexDirection: row` no se
+achica para permitir su propio scroll interno, y en cambio estira todo.
+El equivalente mobile sí lo tenía, por eso el bug era más notorio en
+desktop. Se agregó `minHeight: 0` en toda la cadena (AppShell + el
+`container`/`scroll` de cada pantalla) y `flex: 1` explícito a los
+FlatList que no lo tenían. Aparte, **ProfileScreen y AuthScreen no usaban
+`ScrollView`** — eran `View` simples: si el contenido era más alto que la
+pantalla, no había forma de llegar al final. Se convirtieron ambas a
+`ScrollView`.
+
+**5. Filtro de año** — rediseñado. Antes era una lista plana de chips (un
+chip por año, solo los últimos 10). Ahora: `src/components/YearRangeSlider.tsx`,
+un slider de rango con dos handles arrastrables (PanResponder, sin
+dependencias nativas nuevas — funciona en web y mobile), rango 1950–hoy,
+más una fila de chips de década ("2020s", "2010s", ...) para saltar
+rápido. Backend: `DiscoverMoviesParams`/`DiscoverTvParams` pasaron de
+`year` (exacto) a `yearFrom`/`yearTo` (rango, ambos opcionales), tanto en
+la query de Prisma como en el fallback a TMDB (`primary_release_date.gte/
+lte` / `first_air_date.gte/lte`). `/discover` sigue aceptando `year`
+suelto por compatibilidad (equivale a yearFrom=yearTo=year).
+
+**6. Filtros dentro de plataforma** — antes "Ver más → Netflix" no tenía
+filtro de género ni de tipo (siempre mostraba solo películas, fijo en
+`config/catalog.ts`). Se agregó, solo en páginas de plataforma: chips de
+Película/Serie (pisa el `mediaType` fijo de la categoría) y chips de
+género (reusa `GENRE_ROWS`). Año y Orden ya se mostraban en todas las
+categorías. **Nota**: `GENRE_ROWS` usa IDs de género de TMDB para
+*película* — algunos no coinciden 1:1 con los IDs de género de TMDB para
+series (ej. Acción=28 en película vs. Acción y aventura=10759 en serie),
+así que el filtro de género puede devolver menos resultados de los
+esperados para Serie en géneros donde el ID no coincide (Comedia, Drama,
+Animación y Documentales sí son el mismo ID en ambos). Pendiente si hace
+falta más precisión: mapear una segunda tabla de géneros de TV.
+
+**7. Links oficiales a plataformas** — verificado en producción, sin
+necesitar cambios de código: el sistema ya existía
+(`backend/src/services/streamingLinks.ts`) con la prioridad exacta
+pedida: 1) `StreamingLink` cacheado en la DB, 2) resolución en vivo vía
+Wikidata (gratis, sin API key — cubre Netflix/Disney+/Apple TV) +
+overrides manuales, 3) búsqueda por nombre como último recurso. Se probó
+en vivo: "A ciegas" (Bird Box) pasó de link de búsqueda a
+`https://www.netflix.com/title/80196789` (`verified: true`) automáticamente
+en la segunda visita. Decisión tomada con el usuario: no contratar la
+"Streaming Availability API" (paga) por ahora, así que Max/Prime
+Video/Paramount+/Hulu/Crunchyroll se quedan en búsqueda por nombre salvo
+que Wikidata o un override manual tengan el dato (Wikidata no tiene
+propiedad para esas plataformas, solo Netflix/Disney+/Apple TV).
+
+**8. Testing integral** — pendiente hasta cerrar el punto 2 (emails).
+
+Cambios de este commit: `backend/src/services/views.ts` (nuevo),
+`backend/src/routes/views.routes.ts` (nuevo), `backend/src/app.ts`
+(registro del router), `backend/src/providers/tmdb.ts`,
+`backend/src/services/movies.ts`, `backend/src/services/tv.ts`,
+`backend/src/routes/discover.routes.ts` (year → yearFrom/yearTo),
+`src/api/social.ts`, `src/api/nowsee.ts`, `src/context/ViewsContext.tsx`
+(nuevo), `src/hooks/useViews.ts` (nuevo), `App.tsx` (ViewsProvider),
+`src/components/MediaCard.tsx`, `src/components/YearRangeSlider.tsx`
+(nuevo), `src/components/Row.tsx`, `src/screens/SearchScreen.tsx`,
+`src/screens/CategoryScreen.tsx`, `src/screens/MyListScreen.tsx`,
+`src/screens/DetailScreen.tsx`, `src/screens/ProfileScreen.tsx`,
+`src/screens/AuthScreen.tsx`, `src/navigation/AppShell.tsx`.

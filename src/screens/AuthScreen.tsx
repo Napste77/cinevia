@@ -1,5 +1,5 @@
 import React, { useState } from "react";
-import { View, Text, Pressable, TextInput, StyleSheet, ActivityIndicator } from "react-native";
+import { View, Text, Pressable, TextInput, StyleSheet, ActivityIndicator, ScrollView } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
@@ -44,7 +44,7 @@ export default function AuthScreen({ navigation }: any) {
 
   return (
     <AppShell active={null} onNavigate={goTo}>
-      <View style={styles.container}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <View style={[styles.header, { paddingHorizontal: hPad }]}>
           <Pressable style={styles.backButton} onPress={() => navigation.goBack()} hitSlop={8}>
             <MaterialIcons name="arrow-back" size={22} color={colors.onSurface} />
@@ -117,13 +117,13 @@ export default function AuthScreen({ navigation }: any) {
             </View>
           </View>
         </View>
-      </View>
+      </ScrollView>
     </AppShell>
   );
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, minHeight: 0, backgroundColor: colors.surface },
   header: {
     flexDirection: "row",
     alignItems: "center",

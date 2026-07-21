@@ -23,19 +23,20 @@ export interface TmdbDiscoverParams {
   watchRegion?: string;
   withWatchProviders?: number;
   withGenres?: number;
-  /** Año exacto de estreno (movie: primary_release_year, tv: first_air_date_year). */
-  year?: number;
+  /** Rango de años de estreno (inclusive). Cualquiera de los dos es opcional (rango abierto). */
+  yearFrom?: number;
+  yearTo?: number;
   sortBy?: "popularity.desc" | "release_date.desc" | "vote_average.desc";
   page?: number;
 }
 
 export async function tmdbDiscover(params: TmdbDiscoverParams) {
-  const yearParam =
-    params.year && params.mediaType === "movie"
-      ? { primary_release_year: params.year }
-      : params.year
-        ? { first_air_date_year: params.year }
-        : {};
+  const isMovie = params.mediaType === "movie";
+  const gteKey = isMovie ? "primary_release_date.gte" : "first_air_date.gte";
+  const lteKey = isMovie ? "primary_release_date.lte" : "first_air_date.lte";
+  const yearParam: Record<string, string> = {};
+  if (params.yearFrom) yearParam[gteKey] = `${params.yearFrom}-01-01`;
+  if (params.yearTo) yearParam[lteKey] = `${params.yearTo}-12-31`;
 
   const res = await client.get(`/discover/${params.mediaType}`, {
     params: {

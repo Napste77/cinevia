@@ -2,21 +2,23 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { View, Text, Pressable, FlatList, ScrollView, StyleSheet, ActivityIndicator } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { getCategoryPage, getPlatforms } from "../api/nowsee";
-import { getCategoryBySlug } from "../config/catalog";
-import { TrendingItem, Platform } from "../types";
+import { getCategoryBySlug, GENRE_ROWS } from "../config/catalog";
+import { TrendingItem, Platform, MediaType } from "../types";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
 import MediaCard from "../components/MediaCard";
 import FilterChip from "../components/FilterChip";
+import YearRangeSlider from "../components/YearRangeSlider";
 import { useResponsive } from "../hooks/useResponsive";
 import { useRegion } from "../context/RegionContext";
 import { useFavorites } from "../hooks/useFavorites";
+import { useViews } from "../hooks/useViews";
 import { colors, fonts, spacing } from "../theme";
 
 type SortOption = "popularity" | "newest";
 
 const CURRENT_YEAR = new Date().getFullYear();
-const YEAR_OPTIONS = Array.from({ length: 10 }, (_, i) => CURRENT_YEAR - i);
+const MIN_YEAR = 1950;
 
 /** Catálogo completo de una categoría (/category/:slug), con scroll infinito y filtros combinables. */
 export default function CategoryScreen({ route, navigation }: any) {
@@ -24,6 +26,7 @@ export default function CategoryScreen({ route, navigation }: any) {
   const category = getCategoryBySlug(slug);
   const { country } = useRegion();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isViewed, toggleViewed } = useViews();
   const { isDesktop, columns, width } = useResponsive();
   const hPad = isDesktop ? spacing.marginDesktop : spacing.marginMobile;
   const gutter = 14;
@@ -31,8 +34,16 @@ export default function CategoryScreen({ route, navigation }: any) {
 
   const [platforms, setPlatforms] = useState<Platform[]>([]);
   const [platformFilter, setPlatformFilter] = useState<number | null>(null);
-  const [yearFilter, setYearFilter] = useState<number | null>(null);
+  const [yearFrom, setYearFrom] = useState<number>(MIN_YEAR);
+  const [yearTo, setYearTo] = useState<number>(CURRENT_YEAR);
   const [sort, setSort] = useState<SortOption>("popularity");
+  // Solo se usan en páginas de plataforma ("Ver más → Netflix", etc.): ahí
+  // sí tiene sentido elegir género y tipo, porque el catálogo no viene ya
+  // acotado por eso (a diferencia de una página de género, donde el tipo
+  // "género" ya lo fija todo).
+  const [genreFilter, setGenreFilter] = useState<number | null>(null);
+  const [typeFilter, setTypeFilter] = useState<MediaType>(category?.source.mediaType || "movie");
+  const isPlatformPage = category?.source.type === "platform";
 
   const [items, setItems] = useState<TrendingItem[]>([]);
   const [page, setPage] = useState(1);
@@ -48,8 +59,15 @@ export default function CategoryScreen({ route, navigation }: any) {
   }, [country]);
 
   const extraFilters = useMemo(
-    () => ({ providerId: platformFilter ?? undefined, year: yearFilter ?? undefined, sort }),
-    [platformFilter, yearFilter, sort]
+    () => ({
+      providerId: platformFilter ?? undefined,
+      yearFrom: yearFrom !== MIN_YEAR ? yearFrom : undefined,
+      yearTo: yearTo !== CURRENT_YEAR ? yearTo : undefined,
+      sort,
+      genreId: isPlatformPage ? genreFilter ?? undefined : undefined,
+      mediaType: isPlatformPage ? typeFilter : undefined,
+    }),
+    [platformFilter, yearFrom, yearTo, sort, isPlatformPage, genreFilter, typeFilter]
   );
 
   useEffect(() => {
@@ -115,7 +133,7 @@ export default function CategoryScreen({ route, navigation }: any) {
         </View>
 
         {category && (
-          <View style={{ paddingLeft: hPad }}>
+          <View style={{ paddingHorizontal: hPad }}>
             {category.source.type !== "platform" && (
               <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
                 <FilterChip label="Todas las plataformas" active={platformFilter === null} onPress={() => setPlatformFilter(null)} />
@@ -129,6 +147,27 @@ export default function CategoryScreen({ route, navigation }: any) {
                 ))}
               </ScrollView>
             )}
+            {isPlatformPage && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                <FilterChip label="Películas" active={typeFilter === "movie"} onPress={() => setTypeFilter("movie")} />
+                <FilterChip label="Series" active={typeFilter === "tv"} onPress={() => setTypeFilter("tv")} />
+              </ScrollView>
+            )}
+
+            {isPlatformPage && (
+              <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
+                <FilterChip label="Todos los géneros" active={genreFilter === null} onPress={() => setGenreFilter(null)} />
+                {GENRE_ROWS.map((g) => (
+                  <FilterChip
+                    key={g.key}
+                    label={g.label}
+                    active={genreFilter === g.genreId}
+                    onPress={() => setGenreFilter(g.genreId)}
+                  />
+                ))}
+              </ScrollView>
+            )}
+
             <ScrollView horizontal showsHorizontalScrollIndicator={false} contentContainerStyle={styles.filterRow}>
               <FilterChip
                 label="Popularidad"
@@ -136,16 +175,18 @@ export default function CategoryScreen({ route, navigation }: any) {
                 onPress={() => setSort("popularity")}
               />
               <FilterChip label="Más nuevo" active={sort === "newest"} onPress={() => setSort("newest")} />
-              <FilterChip label="Todos los años" active={yearFilter === null} onPress={() => setYearFilter(null)} />
-              {YEAR_OPTIONS.map((year) => (
-                <FilterChip
-                  key={year}
-                  label={String(year)}
-                  active={yearFilter === year}
-                  onPress={() => setYearFilter(year)}
-                />
-              ))}
             </ScrollView>
+
+            <YearRangeSlider
+              min={MIN_YEAR}
+              max={CURRENT_YEAR}
+              from={yearFrom}
+              to={yearTo}
+              onChange={(f, t) => {
+                setYearFrom(f);
+                setYearTo(t);
+              }}
+            />
           </View>
         )}
 
@@ -165,6 +206,7 @@ export default function CategoryScreen({ route, navigation }: any) {
           </Text>
         ) : (
           <FlatList
+            style={{ flex: 1 }}
             key={columns}
             data={items}
             numColumns={columns}
@@ -179,6 +221,8 @@ export default function CategoryScreen({ route, navigation }: any) {
                 width={cardWidth}
                 isFavorite={isFavorite(item)}
                 onToggleFavorite={() => toggleFavorite(item)}
+                isViewed={isViewed(item)}
+                onToggleViewed={() => toggleViewed(item)}
               />
             )}
             onEndReachedThreshold={0.5}
@@ -196,7 +240,7 @@ export default function CategoryScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, minHeight: 0, backgroundColor: colors.surface },
   header: {
     flexDirection: "row",
     alignItems: "center",

@@ -11,6 +11,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { TrendingItem } from "../types";
 import MediaCard from "./MediaCard";
 import { useFavorites } from "../hooks/useFavorites";
+import { useViews } from "../hooks/useViews";
 import { colors, fonts, spacing } from "../theme";
 
 // Alto fijo del área de contenido (poster 160x240 + título + metadata).
@@ -35,6 +36,7 @@ export default function Row({
   emptyLabel?: string;
 }) {
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isViewed, toggleViewed } = useViews();
 
   return (
     <View style={styles.section}>
@@ -70,6 +72,8 @@ export default function Row({
                 onPress={() => onItemPress(item)}
                 isFavorite={isFavorite(item)}
                 onToggleFavorite={() => toggleFavorite(item)}
+                isViewed={isViewed(item)}
+                onToggleViewed={() => toggleViewed(item)}
               />
             )}
           />

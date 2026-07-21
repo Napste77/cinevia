@@ -20,6 +20,7 @@ import { DetailData } from "../types";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 import { useFavorites } from "../hooks/useFavorites";
+import { useViews } from "../hooks/useViews";
 import { useRegion } from "../context/RegionContext";
 import Chip from "../components/Chip";
 import ProviderBadge from "../components/ProviderBadge";
@@ -35,6 +36,7 @@ export default function DetailScreen({ route, navigation }: any) {
   const { width } = useWindowDimensions();
   const { isDesktop } = useResponsive();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isViewed, toggleViewed } = useViews();
   const [data, setData] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
@@ -80,6 +82,7 @@ export default function DetailScreen({ route, navigation }: any) {
   }
 
   const fav = isFavorite({ id: data.id, media_type: data.media_type });
+  const viewed = isViewed({ id: data.id, media_type: data.media_type });
 
   return (
     <AppShell active={null} onNavigate={goTo}>
@@ -133,19 +136,35 @@ export default function DetailScreen({ route, navigation }: any) {
               ))}
             </View>
 
-            <Pressable
-              style={[styles.favButton, fav && styles.favButtonActive]}
-              onPress={() => toggleFavorite({ ...data, id: data.id, media_type: data.media_type })}
-            >
-              <MaterialIcons
-                name={fav ? "check" : "add"}
-                size={18}
-                color={fav ? colors.onPrimaryContainer : colors.onSurface}
-              />
-              <Text style={[styles.favButtonText, fav && { color: colors.onPrimaryContainer }]}>
-                {fav ? "En tu lista" : "Agregar a Mi Lista"}
-              </Text>
-            </Pressable>
+            <View style={styles.actionButtonsRow}>
+              <Pressable
+                style={[styles.favButton, fav && styles.favButtonActive]}
+                onPress={() => toggleFavorite({ ...data, id: data.id, media_type: data.media_type })}
+              >
+                <MaterialIcons
+                  name={fav ? "check" : "add"}
+                  size={18}
+                  color={fav ? colors.onPrimaryContainer : colors.onSurface}
+                />
+                <Text style={[styles.favButtonText, fav && { color: colors.onPrimaryContainer }]}>
+                  {fav ? "En tu lista" : "Agregar a Mi Lista"}
+                </Text>
+              </Pressable>
+
+              <Pressable
+                style={[styles.favButton, viewed && styles.viewedButtonActive]}
+                onPress={() => toggleViewed({ ...data, id: data.id, media_type: data.media_type })}
+              >
+                <MaterialIcons
+                  name={viewed ? "visibility" : ("visibility-outline" as any)}
+                  size={18}
+                  color={viewed ? colors.onSurface : colors.onSurface}
+                />
+                <Text style={styles.favButtonText}>
+                  {viewed ? "Ya lo viste" : "Marcar como visto"}
+                </Text>
+              </Pressable>
+            </View>
           </View>
         </View>
 
@@ -246,6 +265,8 @@ export default function DetailScreen({ route, navigation }: any) {
                   }
                   isFavorite={isFavorite(item)}
                   onToggleFavorite={() => toggleFavorite(item)}
+                  isViewed={isViewed(item)}
+                  onToggleViewed={() => toggleViewed(item)}
                 />
               )}
             />
@@ -261,7 +282,7 @@ export default function DetailScreen({ route, navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, minHeight: 0, backgroundColor: colors.surface },
   loadingContainer: {
     flex: 1,
     backgroundColor: colors.surface,
@@ -309,6 +330,8 @@ const styles = StyleSheet.create({
     marginBottom: 8,
   },
   favButtonActive: { backgroundColor: colors.primaryContainer, borderColor: colors.primaryContainer },
+  viewedButtonActive: { backgroundColor: colors.secondaryContainer, borderColor: colors.secondaryContainer },
+  actionButtonsRow: { flexDirection: "row", flexWrap: "wrap", gap: 10 },
   favButtonText: { color: colors.onSurface, fontFamily: fonts.label, fontSize: 13 },
   sectionLabel: {
     color: colors.onSurface,

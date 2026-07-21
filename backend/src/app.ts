@@ -14,6 +14,7 @@ import { geoRouter } from "./routes/geo.routes";
 import { ratingsRouter } from "./routes/ratings.routes";
 import { commentsRouter } from "./routes/comments.routes";
 import { favoritesRouter } from "./routes/favorites.routes";
+import { viewsRouter } from "./routes/views.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 
 export function createApp() {
@@ -45,6 +46,7 @@ export function createApp() {
   app.use(ratingsRouter);
   app.use(commentsRouter);
   app.use(favoritesRouter);
+  app.use(viewsRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

@@ -9,11 +9,13 @@ import MediaCard from "../components/MediaCard";
 import { useDebouncedValue } from "../hooks/useDebouncedValue";
 import { useResponsive } from "../hooks/useResponsive";
 import { useFavorites } from "../hooks/useFavorites";
+import { useViews } from "../hooks/useViews";
 import { colors, fonts, spacing } from "../theme";
 
 export default function SearchScreen({ navigation }: any) {
   const { isDesktop, isMobile, columns, width } = useResponsive();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isViewed, toggleViewed } = useViews();
   const [query, setQuery] = useState("");
   const debouncedQuery = useDebouncedValue(query, 350);
   const [results, setResults] = useState<TrendingItem[]>([]);
@@ -76,6 +78,7 @@ export default function SearchScreen({ navigation }: any) {
         )}
 
         <FlatList
+          style={{ flex: 1 }}
           key={columns}
           data={results}
           numColumns={columns}
@@ -90,6 +93,8 @@ export default function SearchScreen({ navigation }: any) {
               width={cardWidth}
               isFavorite={isFavorite(item)}
               onToggleFavorite={() => toggleFavorite(item)}
+              isViewed={isViewed(item)}
+              onToggleViewed={() => toggleViewed(item)}
             />
           )}
         />
@@ -99,7 +104,7 @@ export default function SearchScreen({ navigation }: any) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, minHeight: 0, backgroundColor: colors.surface },
   header: { paddingTop: 24, paddingBottom: 16, gap: 16 },
   title: { color: colors.onSurface, fontFamily: fonts.display, fontSize: 28 },
   emptyText: {

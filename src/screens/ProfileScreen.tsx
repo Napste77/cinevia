@@ -1,5 +1,5 @@
 import React from "react";
-import { View, Text, Image, Pressable, Switch, StyleSheet } from "react-native";
+import { View, Text, Image, Pressable, Switch, StyleSheet, ScrollView } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
@@ -25,7 +25,7 @@ export default function ProfileScreen({ navigation }: any) {
 
   return (
     <AppShell active="Profile" onNavigate={goTo}>
-      <View style={styles.container}>
+      <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
         <TopBar title="Perfil" onSearchPress={() => goTo("Search")} />
 
         <View style={{ paddingHorizontal: hPad, paddingTop: 24, paddingBottom: 48 }}>
@@ -113,7 +113,7 @@ export default function ProfileScreen({ navigation }: any) {
             género, calificaciones y comentarios de la comunidad, todo actualizado automáticamente.
           </Text>
         </View>
-      </View>
+      </ScrollView>
     </AppShell>
   );
 }
@@ -128,7 +128,7 @@ function StatCard({ value, label }: { value: number; label: string }) {
 }
 
 const styles = StyleSheet.create({
-  container: { flex: 1, backgroundColor: colors.surface },
+  container: { flex: 1, minHeight: 0, backgroundColor: colors.surface },
   card: {
     flexDirection: "row",
     alignItems: "center",

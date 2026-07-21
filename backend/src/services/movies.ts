@@ -98,8 +98,9 @@ export async function bootstrapTrendingMovies() {
 export interface DiscoverMoviesParams {
   genreTmdbId?: number;
   platformTmdbId?: number;
-  /** Año exacto de estreno. */
-  year?: number;
+  /** Rango de años de estreno (inclusive), cualquiera de los dos opcional. */
+  yearFrom?: number;
+  yearTo?: number;
   /** "popularity" (default) o "newest" (estreno más reciente primero). */
   sortBy?: "popularity" | "newest";
   country?: string;
@@ -131,10 +132,10 @@ export async function discoverMovies(params: DiscoverMoviesParams) {
   if (params.genreTmdbId) {
     baseWhere.genres = { some: { genre: { tmdbId: params.genreTmdbId } } };
   }
-  if (params.year) {
+  if (params.yearFrom || params.yearTo) {
     baseWhere.releaseDate = {
-      gte: new Date(Date.UTC(params.year, 0, 1)),
-      lt: new Date(Date.UTC(params.year + 1, 0, 1)),
+      ...(params.yearFrom ? { gte: new Date(Date.UTC(params.yearFrom, 0, 1)) } : {}),
+      ...(params.yearTo ? { lt: new Date(Date.UTC(params.yearTo + 1, 0, 1)) } : {}),
     };
   }
 
@@ -169,7 +170,8 @@ export async function discoverMovies(params: DiscoverMoviesParams) {
       watchRegion: country,
       withGenres: params.genreTmdbId,
       withWatchProviders: params.platformTmdbId,
-      year: params.year,
+      yearFrom: params.yearFrom,
+      yearTo: params.yearTo,
       page,
     });
     // Antes se hacía un `await upsertMovie` por item, en serie (hasta 20

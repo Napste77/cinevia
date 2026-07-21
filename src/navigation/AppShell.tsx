@@ -42,7 +42,7 @@ export default function AppShell({
 
 const styles = StyleSheet.create({
   desktopRow: { flex: 1, flexDirection: "row", backgroundColor: colors.surface },
-  desktopContent: { flex: 1, minWidth: 0 },
+  desktopContent: { flex: 1, minWidth: 0, minHeight: 0 },
   mobileColumn: { flex: 1, backgroundColor: colors.surface },
   mobileContent: { flex: 1, minHeight: 0 },
 });

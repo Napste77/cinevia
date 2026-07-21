@@ -14,20 +14,23 @@ export interface DiscoverFilters {
   mediaType: MediaType;
   genreId?: number;
   providerId?: number;
-  year?: number;
+  /** Rango de años (inclusive) del slider de año — cualquiera opcional. */
+  yearFrom?: number;
+  yearTo?: number;
   sort?: "popularity" | "newest";
   country: string;
   page?: number;
 }
 
-/** Filtro combinable (género + plataforma + año + orden, todos a la vez). */
+/** Filtro combinable (género + plataforma + rango de año + orden, todos a la vez). */
 export async function discover(filters: DiscoverFilters): Promise<TrendingItem[]> {
   const res = await client.get("/discover", {
     params: {
       type: filters.mediaType,
       genre: filters.genreId,
       provider: filters.providerId,
-      year: filters.year,
+      yearFrom: filters.yearFrom,
+      yearTo: filters.yearTo,
       sort: filters.sort,
       country: filters.country,
       page: filters.page || 1,
@@ -78,13 +81,23 @@ export async function getCategoryPage(
   country: string,
   source: CategorySource,
   page = 1,
-  extraFilters?: { providerId?: number; year?: number; sort?: "popularity" | "newest" }
+  extraFilters?: {
+    providerId?: number;
+    yearFrom?: number;
+    yearTo?: number;
+    sort?: "popularity" | "newest";
+    /** Solo tiene efecto en páginas de plataforma: género adicional a filtrar. */
+    genreId?: number;
+    /** Solo tiene efecto en páginas de plataforma: pisa el mediaType fijo de la categoría. */
+    mediaType?: MediaType;
+  }
 ): Promise<{ items: TrendingItem[]; totalPages: number }> {
   const items = await discover({
-    mediaType: source.mediaType,
-    genreId: source.type === "genre" ? source.genreId : undefined,
+    mediaType: source.type === "platform" ? extraFilters?.mediaType || source.mediaType : source.mediaType,
+    genreId: source.type === "genre" ? source.genreId : source.type === "platform" ? extraFilters?.genreId : undefined,
     providerId: source.type === "platform" ? source.providerId : extraFilters?.providerId,
-    year: extraFilters?.year,
+    yearFrom: extraFilters?.yearFrom,
+    yearTo: extraFilters?.yearTo,
     sort: extraFilters?.sort,
     country,
     page,
