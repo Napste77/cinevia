@@ -5,6 +5,7 @@ import { attachTvGenres } from "./genres";
 import { getPlatformIdByTmdbId } from "./platforms";
 import { STALE_TTL_MS, isStale } from "../config/sync";
 import { env } from "../config/env";
+import { mapWithConcurrency } from "../utils/concurrency";
 
 const PAGE_SIZE = 20;
 
@@ -153,25 +154,26 @@ export async function discoverTv(params: DiscoverTvParams) {
     });
     // Misma optimización que en movies.ts::discoverMovies — resolver los
     // upserts en paralelo en vez de uno por uno en serie.
-    await Promise.all(
-      data.results.map(async (raw: any) => {
-        const tvShow = await upsertTv(raw);
-        if (platformId) {
-          await prisma.streamingLink.upsert({
-            where: {
-              content_platform_country: {
-                contentType: "tv",
-                contentId: tvShow.id,
-                platformId,
-                country,
-              },
+    // Misma optimización que en movies.ts::discoverMovies: concurrencia
+    // acotada (4 a la vez) para evitar deadlocks P2034 en MySQL cuando
+    // varios upserts pisan las mismas filas de TVGenre a la vez.
+    await mapWithConcurrency(data.results, 4, async (raw: any) => {
+      const tvShow = await upsertTv(raw);
+      if (platformId) {
+        await prisma.streamingLink.upsert({
+          where: {
+            content_platform_country: {
+              contentType: "tv",
+              contentId: tvShow.id,
+              platformId,
+              country,
             },
-            update: {},
-            create: { contentType: "tv", contentId: tvShow.id, platformId, country, verified: false },
-          });
-        }
-      })
-    );
+          },
+          update: {},
+          create: { contentType: "tv", contentId: tvShow.id, platformId, country, verified: false },
+        });
+      }
+    });
     if (platformId) cachedPlatformIds = null; // se insertaron links nuevos, invalidar el cache local
   }
 

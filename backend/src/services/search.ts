@@ -2,6 +2,7 @@ import { prisma } from "../db/prisma";
 import { tmdbSearchMulti } from "../providers/tmdb";
 import { upsertMovie } from "./movies";
 import { upsertTv } from "./tv";
+import { mapWithConcurrency } from "../utils/concurrency";
 
 /**
  * Full-text search en MySQL (índice @@fulltext de title/original_title).
@@ -51,14 +52,17 @@ export async function search(query: string, limit = 20) {
   if (movies.length === 0 && tvShows.length === 0) {
     const { results } = await tmdbSearchMulti(sanitized);
     const relevant = results.slice(0, limit);
-    const upserted = await Promise.all(
-      relevant.map((raw) =>
-        raw.media_type === "movie"
-          ? upsertMovie(raw).then((m) => ({ type: "movie" as const, row: m }))
-          : raw.media_type === "tv"
-            ? upsertTv(raw).then((tv) => ({ type: "tv" as const, row: tv }))
-            : null
-      )
+    // Concurrencia acotada (mismo motivo que en movies.ts/tv.ts discover):
+    // upsertear todo el batch a la vez deadlockeaba MySQL por choques en
+    // MovieGenre/TVGenre.
+    const upserted = await mapWithConcurrency(
+      relevant,
+      4,
+      async (raw): Promise<{ type: "movie" | "tv"; row: any } | null> => {
+        if (raw.media_type === "movie") return { type: "movie", row: await upsertMovie(raw) };
+        if (raw.media_type === "tv") return { type: "tv", row: await upsertTv(raw) };
+        return null;
+      }
     );
     for (const u of upserted) {
       if (!u) continue;

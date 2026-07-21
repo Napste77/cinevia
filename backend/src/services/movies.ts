@@ -5,6 +5,7 @@ import { attachMovieGenres } from "./genres";
 import { getPlatformIdByTmdbId } from "./platforms";
 import { STALE_TTL_MS, isStale } from "../config/sync";
 import { env } from "../config/env";
+import { mapWithConcurrency } from "../utils/concurrency";
 
 const PAGE_SIZE = 20;
 
@@ -178,25 +179,28 @@ export async function discoverMovies(params: DiscoverMoviesParams) {
     // viajes secuenciales a la MySQL remota). Cada item es independiente,
     // así que se resuelven en paralelo — mismo patrón ya usado en
     // services/search.ts para su propio fallback de TMDB.
-    await Promise.all(
-      data.results.map(async (raw: any) => {
-        const movie = await upsertMovie(raw);
-        if (platformId) {
-          await prisma.streamingLink.upsert({
-            where: {
-              content_platform_country: {
-                contentType: "movie",
-                contentId: movie.id,
-                platformId,
-                country,
-              },
+    // Se resuelven en paralelo pero con concurrencia acotada: sin límite,
+    // hasta 20 upserts simultáneos compitiendo por las mismas filas de
+    // Genre generaban deadlocks (Prisma P2034) contra la MySQL remota y
+    // el discover terminaba en 500. 4 a la vez evita el choque sin volver
+    // a la lentitud de hacerlo en serie.
+    await mapWithConcurrency(data.results, 4, async (raw: any) => {
+      const movie = await upsertMovie(raw);
+      if (platformId) {
+        await prisma.streamingLink.upsert({
+          where: {
+            content_platform_country: {
+              contentType: "movie",
+              contentId: movie.id,
+              platformId,
+              country,
             },
-            update: {},
-            create: { contentType: "movie", contentId: movie.id, platformId, country, verified: false },
-          });
-        }
-      })
-    );
+          },
+          update: {},
+          create: { contentType: "movie", contentId: movie.id, platformId, country, verified: false },
+        });
+      }
+    });
     if (platformId) cachedPlatformIds = null; // se insertaron links nuevos, invalidar el cache local
   }
 
