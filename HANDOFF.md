@@ -540,7 +540,9 @@ Video/Paramount+/Hulu/Crunchyroll se quedan en búsqueda por nombre salvo
 que Wikidata o un override manual tengan el dato (Wikidata no tiene
 propiedad para esas plataformas, solo Netflix/Disney+/Apple TV).
 
-**8. Testing integral** — pendiente hasta cerrar el punto 2 (emails).
+**8. Testing integral** — en curso (ver sección 6.1 para el bug encontrado
+y resuelto durante esta ronda de QA); falta cerrar el punto 2 (emails)
+antes de darlo por terminado del todo.
 
 Cambios de este commit: `backend/src/services/views.ts` (nuevo),
 `backend/src/routes/views.routes.ts` (nuevo), `backend/src/app.ts`
@@ -554,3 +556,53 @@ Cambios de este commit: `backend/src/services/views.ts` (nuevo),
 `src/screens/CategoryScreen.tsx`, `src/screens/MyListScreen.tsx`,
 `src/screens/DetailScreen.tsx`, `src/screens/ProfileScreen.tsx`,
 `src/screens/AuthScreen.tsx`, `src/navigation/AppShell.tsx`.
+
+## 6.1. Bug encontrado en QA en vivo: error 500 al combinar filtros en páginas de plataforma (deadlock MySQL)
+
+Durante el testing manual del punto 6 (filtros en páginas de plataforma),
+en `nowsee.netlify.app/category/netflix` combinar género (ej. Comedia,
+Documentales) — con o sin tipo (Película/Serie) — a veces mostraba "No
+pudimos cargar este catálogo" en vez de resultados. Era intermitente: la
+misma combinación de filtros a veces funcionaba y a veces no.
+
+**Diagnóstico**: se descartó el frontend primero — un `fetch` manual
+contra `/discover` con los mismos parámetros devolvía 200 sin problema.
+El error real solo aparecía haciendo el click real en la UI. Los logs de
+Render (`read_console_messages`/`read_network_requests` del navegador +
+logs de la app en el dashboard de Render) mostraron el error real:
+
+```
+PrismaClientKnownRequestError: Invalid `prisma.movieGenre.createMany()` invocation:
+Transaction failed due to a write conflict or a deadlock. Please retry your transaction
+code: 'P2034'
+```
+
+**Causa raíz**: `discoverMovies`/`discoverTv` (y el fallback de
+`search`) resuelven contra TMDB cuando la cobertura local no alcanza, y
+antes de esta ronda upserteaban **todos los resultados de la página (hasta
+20) en paralelo con `Promise.all` sin ningún límite**. Cada upsert corre
+una transacción `deleteMany + createMany` sobre `MovieGenre`/`TVGenre`
+(ver `services/genres.ts`). Con hasta 20 transacciones compitiendo a la
+vez contra la MySQL remota (Aiven), y varias películas/series compartiendo
+el mismo género (ej. todas las de "Comedia" tocan la misma fila de
+`Genre`), MySQL resuelve el choque como deadlock (Prisma P2034). Ya
+existía un `withRetry` que reintentaba 3 veces ante P2034 — pero con un
+lote entero reintentando casi al mismo tiempo, los reintentos también
+chocaban entre sí y terminaban agotándose, devolviendo 500 al cliente.
+
+**Fix** (no toca schema ni datos):
+- `backend/src/utils/concurrency.ts` (nuevo): `mapWithConcurrency`, corre
+  los upserts con un límite real de tareas en vuelo en vez de todas a la
+  vez.
+- `backend/src/services/movies.ts`, `tv.ts`, `search.ts`: reemplazan su
+  `Promise.all` sin límite por `mapWithConcurrency(items, 4, ...)`.
+- `backend/src/utils/withRetry.ts`: de 3 a 5 intentos, con backoff +
+  jitter (en vez de espera fija) para que los reintentos de transacciones
+  distintas no se sincronicen entre sí.
+
+**Verificación**: reproducido en vivo antes del fix (Netflix + Comedia,
+Netflix + Serie + Comedia); tras deployar el fix, se repitió la prueba
+con combinaciones nuevas sin cachear (Netflix + Documentales, Netflix +
+Serie + Documentales) y cargaron bien; revisados los logs de Render post-
+deploy sin ningún P2034 nuevo.
+
