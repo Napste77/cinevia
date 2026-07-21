@@ -406,11 +406,12 @@ Environment) al connection string de Aiven, se sacó `TARGET_DATABASE_URL`
 (ya no hace falta) y se re-desplegó. Se verificó en caliente contra
 producción:
 
-- `GET /movies/trending` con datos reales: 832ms en frío, luego ~200ms.
-- `GET /movies/:id` (ficha): **222-247ms** contra Aiven, vs. los
-  ~1.3-2.3s que daba contra Hostinger en la ronda de 3.5. La mejora
-  confirma que la distancia de red era efectivamente el cuello de botella
-  dominante.
+- `GET /movies/trending` con datos reales: 832ms en frío, luego ~200-400ms.
+- `GET /movie/:id` (ficha, endpoint real — no `/movies/:id`): **350-500ms**
+  contra Aiven, vs. los ~1.3-2.3s que daba contra Hostinger en la ronda de
+  3.5. Mejora de ~3-4x. Sigue habiendo margen (Aiven no está en la misma
+  región exacta que Render/Oregón), pero confirma que la distancia de red
+  era el cuello de botella dominante.
 
 **Limpieza pendiente/hecha**: se eliminó `backend/src/routes/migrate.routes.ts`
 y su registro en `app.ts` una vez verificada la migración (este código era
