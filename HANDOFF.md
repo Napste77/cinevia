@@ -708,3 +708,59 @@ producción real los usuarios no recibirían sus emails.
 Con esto, los 8 puntos del pedido original quedan completos, con las dos
 salvedades ya documentadas: paginación no implementada (sección 6.2) y esta
 verificación de dominio pendiente de una acción del usuario en Resend.
+
+## 10. Caído del 22/07/2026 y 3 bugs reportados — diagnóstico y fixes
+
+Reporte del usuario: contadores del Perfil en 0, Mi Lista/Ya lo vi se
+destildaban solos al ir tocando varias cards, y el link de plataforma
+seguía yendo a un buscador en vez del link directo.
+
+**Causa raíz del caído**: el plan free de Aiven apaga el servicio de
+MySQL por inactividad. El cron externo (cron-job.org) que se había
+armado para mantener despierto el web service de Render solo pegaba a
+`/health`, que no toca la base — mantenía vivo el proceso Node pero
+Aiven se apagaba igual. `nowsee-api` no podía conectar
+(`P1001: Can't reach database server`), y con la base caída **los tres
+bugs reportados eran síntoma directo de esto**, no bugs nuevos:
+- Contadores en 0: ni el login funcionaba (necesita DB).
+- Toggle de Mi Lista/Ya lo vi revirtiéndose: el POST fallaba (500 por
+  DB caída) y el optimistic update se revertía.
+- Link de plataforma a buscador: la resolución en background (Wikidata/
+  Streaming Availability → cache en `streaming_links`) fallaba en
+  silencio sin poder escribir en la base.
+
+Se resolvió: se prendió el servicio de Aiven de nuevo desde su consola
+(power on), y se agregó `GET /health/db` (hace `SELECT 1` real) — el
+cron ahora pega ahí en vez de `/health`, así la base también se
+mantiene despierta y no solo el proceso de Render.
+
+**Bug real encontrado aparte, sí de código**: al tocar "agregar a Mi
+Lista" o "Ya lo vi" en varias cards distintas rápido (antes de que
+React re-renderizara), cada toggle calculaba el próximo estado a
+partir del array del último render, no del estado real más nuevo — el
+último click ganaba y pisaba por completo los cambios de los toggles
+anteriores. Reproducido en vivo: 5 clicks seguidos en cards distintas,
+solo quedó marcada la última. Fix en `FavoritesContext.tsx` y
+`ViewsContext.tsx`: se agregó un ref espejo actualizado de forma
+síncrona en cada toggle, y el revert ante error de red ahora deshace
+solo el cambio de ese toggle puntual (no pisa todo con una foto vieja).
+
+De paso se corrigió que `ProfileScreen` solo pedía las stats
+(películas vistas, calificaciones, etc.) una vez al loguearse — ahora
+las vuelve a pedir cada vez que la pantalla toma foco.
+
+**Verificado en producción tras los fixes** (con la base ya arriba):
+- Login y contadores del perfil: reflejan la actividad real (ej. "4 en
+  Mi Lista", "2 películas vistas" en la cuenta de prueba).
+- Link de plataforma: probado con "Heartstopper para siempre" en
+  Netflix — primera vista mostró el buscador (por diseño, no bloquea
+  la respuesta), a los ~10 segundos ya quedó cacheado el link real
+  (`netflix.com/title/82040750`).
+- `/health/db` responde 200 con una consulta real a la base (probado
+  desde cron-job.org, 651ms).
+
+Pendiente de verificar con más tiempo: que el toggle de Mi Lista/Ya lo
+vi tocando varias cards rápido ya no se destilde con el fix desplegado
+(el bug se reprodujo y se entendió la causa antes del fix; falta
+repetir la prueba en producción una vez que Netlify termine de
+deployar este commit).
