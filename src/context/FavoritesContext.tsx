@@ -45,6 +45,23 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const wasAuthenticated = useRef(isAuthenticated);
 
+  // Espejo síncrono del estado, además del useState de arriba (que solo
+  // sirve para pintar la UI). Tocar varias cards distintas rápido dispara
+  // varios toggleFavorite() antes de que React vuelva a renderizar --con
+  // useState solo, cada toggle calculaba el "próximo estado" a partir del
+  // mismo `favorites` viejo (el de la última vez que este componente
+  // renderizó), así que el segundo toggle pisaba por completo el cambio
+  // del primero en vez de sumarse (eso era el "se van destildando" al ir
+  // tocando varias películas seguidas). Este ref se actualiza en el acto,
+  // así el siguiente toggle -aunque sea en el mismo tick- parte siempre
+  // del estado real más reciente.
+  const favoritesRef = useRef<TrendingItem[]>([]);
+
+  const applyFavorites = useCallback((next: TrendingItem[]) => {
+    favoritesRef.current = next;
+    setFavorites(next);
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoaded(false);
@@ -54,13 +71,13 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
           if (justLoggedIn) {
             const local = await readLocal();
             const merged = local.length > 0 ? await syncFavorites(local) : await getFavorites();
-            setFavorites(merged);
+            applyFavorites(merged);
             await AsyncStorage.removeItem(STORAGE_KEY);
           } else {
-            setFavorites(await getFavorites());
+            applyFavorites(await getFavorites());
           }
         } else {
-          setFavorites(await readLocal());
+          applyFavorites(await readLocal());
         }
       } catch (e) {
         console.error("Error cargando Mi Lista", e);
@@ -69,7 +86,7 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
         setLoaded(true);
       }
     })();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, applyFavorites]);
 
   const isFavorite = useCallback(
     (item: Pick<TrendingItem, "id" | "media_type">) => favorites.some((f) => keyOf(f) === keyOf(item)),
@@ -78,25 +95,35 @@ export function FavoritesProvider({ children }: { children: React.ReactNode }) {
 
   const toggleFavorite = useCallback(
     async (item: TrendingItem) => {
-      const currentlyFavorite = isFavorite(item);
-      const next = currentlyFavorite
-        ? favorites.filter((f) => keyOf(f) !== keyOf(item))
-        : [item, ...favorites];
-      setFavorites(next); // acción inmediata, sin esperar la red
+      const key = keyOf(item);
+      const current = favoritesRef.current;
+      const wasFavorite = current.some((f) => keyOf(f) === key);
+      const next = wasFavorite ? current.filter((f) => keyOf(f) !== key) : [item, ...current];
+      applyFavorites(next); // acción inmediata, sin esperar la red
 
       try {
         if (isAuthenticated) {
-          if (currentlyFavorite) await removeFavorite(item.media_type, item.id);
+          if (wasFavorite) await removeFavorite(item.media_type, item.id);
           else await addFavorite(item.media_type, item.id);
         } else {
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
         }
       } catch (e) {
         console.error("Error actualizando Mi Lista", e);
-        setFavorites(favorites); // revierte el optimistic update si falló
+        // Revierte solo el cambio de ESTE toggle sobre el estado actual
+        // (que puede haber seguido cambiando por otros toggles mientras
+        // esta request estaba en vuelo), no pisa todo con una foto vieja.
+        const afterFailure = favoritesRef.current;
+        const stillApplied = afterFailure.some((f) => keyOf(f) === key) !== wasFavorite;
+        if (stillApplied) {
+          const reverted = wasFavorite
+            ? [item, ...afterFailure.filter((f) => keyOf(f) !== key)]
+            : afterFailure.filter((f) => keyOf(f) !== key);
+          applyFavorites(reverted);
+        }
       }
     },
-    [favorites, isFavorite, isAuthenticated]
+    [isAuthenticated, applyFavorites]
   );
 
   return (

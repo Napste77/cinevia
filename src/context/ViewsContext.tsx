@@ -41,6 +41,18 @@ export function ViewsProvider({ children }: { children: React.ReactNode }) {
   const [loaded, setLoaded] = useState(false);
   const wasAuthenticated = useRef(isAuthenticated);
 
+  // Ver el comentario equivalente en FavoritesContext.tsx: este ref es la
+  // fuente de verdad síncrona que evita que, al tocar "Ya lo vi" en varias
+  // cards seguidas y rápido, cada toggle pise el cambio del anterior por
+  // partir todos del mismo `views` viejo (el useState solo se usa para
+  // pintar la UI, no para calcular el próximo estado).
+  const viewsRef = useRef<TrendingItem[]>([]);
+
+  const applyViews = useCallback((next: TrendingItem[]) => {
+    viewsRef.current = next;
+    setViews(next);
+  }, []);
+
   useEffect(() => {
     (async () => {
       setLoaded(false);
@@ -50,13 +62,13 @@ export function ViewsProvider({ children }: { children: React.ReactNode }) {
           if (justLoggedIn) {
             const local = await readLocal();
             const merged = local.length > 0 ? await syncViews(local) : await getViews();
-            setViews(merged);
+            applyViews(merged);
             await AsyncStorage.removeItem(STORAGE_KEY);
           } else {
-            setViews(await getViews());
+            applyViews(await getViews());
           }
         } else {
-          setViews(await readLocal());
+          applyViews(await readLocal());
         }
       } catch (e) {
         console.error("Error cargando Ya lo vi", e);
@@ -65,7 +77,7 @@ export function ViewsProvider({ children }: { children: React.ReactNode }) {
         setLoaded(true);
       }
     })();
-  }, [isAuthenticated]);
+  }, [isAuthenticated, applyViews]);
 
   const isViewed = useCallback(
     (item: Pick<TrendingItem, "id" | "media_type">) => views.some((v) => keyOf(v) === keyOf(item)),
@@ -74,25 +86,34 @@ export function ViewsProvider({ children }: { children: React.ReactNode }) {
 
   const toggleViewed = useCallback(
     async (item: TrendingItem) => {
-      const currentlyViewed = isViewed(item);
-      const next = currentlyViewed
-        ? views.filter((v) => keyOf(v) !== keyOf(item))
-        : [item, ...views];
-      setViews(next); // acción inmediata, sin esperar la red
+      const key = keyOf(item);
+      const current = viewsRef.current;
+      const wasViewed = current.some((v) => keyOf(v) === key);
+      const next = wasViewed ? current.filter((v) => keyOf(v) !== key) : [item, ...current];
+      applyViews(next); // acción inmediata, sin esperar la red
 
       try {
         if (isAuthenticated) {
-          if (currentlyViewed) await unmarkViewed(item.media_type, item.id);
+          if (wasViewed) await unmarkViewed(item.media_type, item.id);
           else await markViewed(item.media_type, item.id);
         } else {
           await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
         }
       } catch (e) {
         console.error("Error actualizando Ya lo vi", e);
-        setViews(views); // revierte el optimistic update si falló
+        // Revierte solo el cambio de ESTE toggle sobre el estado actual,
+        // no pisa con una foto vieja si hubo otros toggles mientras tanto.
+        const afterFailure = viewsRef.current;
+        const stillApplied = afterFailure.some((v) => keyOf(v) === key) !== wasViewed;
+        if (stillApplied) {
+          const reverted = wasViewed
+            ? [item, ...afterFailure.filter((v) => keyOf(v) !== key)]
+            : afterFailure.filter((v) => keyOf(v) !== key);
+          applyViews(reverted);
+        }
       }
     },
-    [views, isViewed, isAuthenticated]
+    [isAuthenticated, applyViews]
   );
 
   return (

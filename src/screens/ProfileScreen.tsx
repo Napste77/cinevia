@@ -1,5 +1,6 @@
-import React from "react";
+import React, { useCallback } from "react";
 import { View, Text, Image, Pressable, Switch, StyleSheet, ScrollView } from "react-native";
+import { useFocusEffect } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
@@ -15,9 +16,23 @@ import BrandLogo from "../components/BrandLogo";
 
 export default function ProfileScreen({ navigation }: any) {
   const { favorites } = useFavorites();
-  const { user, stats, isAuthenticated, logout, updateProfile } = useAuth();
+  const { user, stats, isAuthenticated, logout, updateProfile, refreshProfile } = useAuth();
   const { country, setCountry } = useRegion();
   const { isDesktop } = useResponsive();
+
+  // Las stats (películas vistas, calificaciones, etc.) solo se traían una
+  // vez al loguearse -- si mirabas una peli y volvías a Perfil en la
+  // misma sesión, seguían mostrando los valores viejos. Al entrar a esta
+  // pantalla las volvemos a pedir, así siempre reflejan la actividad real.
+  useFocusEffect(
+    useCallback(() => {
+      if (isAuthenticated) {
+        refreshProfile().catch(() => {
+          // si falla (ej. sin red), se quedan las stats que ya había
+        });
+      }
+    }, [isAuthenticated, refreshProfile])
+  );
   const hPad = isDesktop ? spacing.marginDesktop : spacing.marginMobile;
 
   const goTo = (key: RouteKey) => navigation.navigate(key);
