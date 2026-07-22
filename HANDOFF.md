@@ -656,3 +656,55 @@ Conclusión: los 6 puntos técnicos completados en 6.1 quedan verificados
 en producción sin regresiones. Solo restan los emails (bloqueado por
 credencial) para poder cerrar el punto 8 al 100%.
 
+
+## 9. Emails (bienvenida + recuperar contraseña) — implementado y verificado end-to-end
+
+Con la API key de Resend ya provista, se completó el punto 2 al 100%:
+
+- **Bienvenida**: se dispara de forma no bloqueante al registrarse (`register()` en
+  `auth.ts`), con el diseño de marca de NowSee (wordmark "Now"+"See", fondo
+  `#020617`/`#0c1324`, acento lima `#b7f700`).
+- **Recuperar contraseña**: `POST /auth/forgot-password` genera un token opaco
+  (32 bytes random), guarda solo su hash SHA-256 en la nueva tabla
+  `password_reset_tokens` (migración `20260721210000_add_password_reset_tokens`,
+  no destructiva), con expiración de 2 horas y un solo uso. `POST
+  /auth/reset-password` valida el token, actualiza la contraseña y revoca todas
+  las sesiones activas del usuario (`UserSession`) como buena práctica de
+  seguridad. La respuesta de `/auth/forgot-password` es siempre la misma exista
+  o no el email, para evitar enumeración de cuentas.
+- **Pantallas**: `ForgotPasswordScreen` y `ResetPasswordScreen` (React Native),
+  mismo estilo visual que `AuthScreen`. El link del email deep-linkea a
+  `nowsee.netlify.app/reset-password?token=...` y la app toma el token de los
+  params automáticamente.
+
+**Verificación real hecha en producción** (cuenta de prueba, no la del usuario):
+1. Registro nuevo → email de bienvenida enviado, entregado y abierto (confirmado
+   en el dashboard de Resend).
+2. "Olvidé mi contraseña" → email de recuperación enviado, entregado y abierto,
+   con el link y el botón correctos.
+3. Se abrió el link real del email → pantalla "Nueva contraseña" → se guardó una
+   contraseña nueva → mensaje "Contraseña actualizada".
+4. Login con la contraseña nueva → funcionó.
+5. Reutilizar el mismo link de reset una segunda vez → rechazado correctamente
+   ("El link para restablecer la contraseña es inválido o venció"), confirmando
+   que el token es de un solo uso.
+
+**Limitación importante a resolver por el usuario**: la cuenta de Resend está en
+modo sandbox (sin dominio propio verificado). En este modo, Resend **solo
+entrega emails a la casilla dueña de la cuenta de Resend**, rechazando con
+error 403 cualquier otro destinatario. Esto significa que, tal como está hoy,
+los emails de bienvenida/recuperación **no van a llegar a usuarios reales** que
+se registren en NowSee — solo llegarían a la casilla del dueño de la cuenta
+Resend. Para habilitar el envío a cualquier usuario hace falta:
+1. Verificar un dominio propio en `resend.com/domains` (agregar registros
+   DNS TXT/CNAME que Resend indica).
+2. Cambiar `RESEND_FROM_EMAIL` en las variables de entorno de Render de
+   `NowSee <onboarding@resend.dev>` a una dirección de ese dominio verificado
+   (ej. `NowSee <no-reply@tudominio.com>`).
+
+Sin ese paso, el código funciona perfecto (como se ve arriba), pero en
+producción real los usuarios no recibirían sus emails.
+
+Con esto, los 8 puntos del pedido original quedan completos, con las dos
+salvedades ya documentadas: paginación no implementada (sección 6.2) y esta
+verificación de dominio pendiente de una acción del usuario en Resend.
