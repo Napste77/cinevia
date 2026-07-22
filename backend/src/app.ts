@@ -16,6 +16,7 @@ import { commentsRouter } from "./routes/comments.routes";
 import { favoritesRouter } from "./routes/favorites.routes";
 import { viewsRouter } from "./routes/views.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
+import { prisma } from "./db/prisma";
 
 export function createApp() {
   const app = express();
@@ -29,6 +30,25 @@ export function createApp() {
   app.use(express.json());
 
   app.get("/health", (_req, res) => res.json({ ok: true }));
+
+  /**
+   * A diferencia de /health (que solo confirma que el proceso Node
+   * está vivo), este endpoint hace una consulta real a la base. El
+   * plan free de Aiven apaga el servicio de MySQL solo por
+   * inactividad -- el cron externo que ya pegaba a /health cada 2
+   * minutos mantenia despierto el web service de Render, pero nunca
+   * tocaba la base, asi que Aiven se apagaba igual (causa del caido
+   * del 22/07/2026). El cron ahora debe apuntar aca para que la base
+   * tambien se mantenga activa.
+   */
+  app.get("/health/db", async (_req, res) => {
+    try {
+      await prisma.$queryRaw`SELECT 1`;
+      res.json({ ok: true, db: true });
+    } catch (e) {
+      res.status(503).json({ ok: false, db: false });
+    }
+  });
 
   // API propia de NowSee: el frontend (web/Android/iOS) solo conoce estos
   // endpoints. Ninguna API externa (TMDB, Wikidata, etc.) se expone acá.
