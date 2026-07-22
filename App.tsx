@@ -21,6 +21,8 @@ import MyListScreen from "./src/screens/MyListScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import CategoryScreen from "./src/screens/CategoryScreen";
 import AuthScreen from "./src/screens/AuthScreen";
+import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
+import ResetPasswordScreen from "./src/screens/ResetPasswordScreen";
 import { colors } from "./src/theme";
 import { AuthProvider } from "./src/context/AuthContext";
 import { RegionProvider } from "./src/context/RegionContext";
@@ -62,6 +64,8 @@ const linking: LinkingOptions<any> = {
         parse: { id: (id: string) => Number(id) },
       },
       Auth: "login",
+      ForgotPassword: "forgot-password",
+      ResetPassword: "reset-password",
     },
   },
 };
@@ -137,6 +141,8 @@ export default function App() {
                 <Stack.Screen name="Profile" component={ProfileScreen} />
                 <Stack.Screen name="Category" component={CategoryScreen} />
                 <Stack.Screen name="Auth" component={AuthScreen} />
+                <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+                <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
               </Stack.Navigator>
             </NavigationContainer>
           </ViewsProvider>

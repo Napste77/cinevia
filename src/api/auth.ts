@@ -73,3 +73,11 @@ export async function updateProfile(
   const res = await client.patch("/auth/me", patch);
   return res.data.user;
 }
+
+export async function forgotPassword(email: string): Promise<void> {
+  await client.post("/auth/forgot-password", { email });
+}
+
+export async function resetPassword(token: string, password: string): Promise<void> {
+  await client.post("/auth/reset-password", { token, password });
+}

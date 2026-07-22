@@ -27,4 +27,20 @@ export const env = {
   // Proveedor de geolocalización por IP (ver src/providers/geoip.ts).
   // ip-api.com: gratis, sin API key, HTTP only (alcanza para uso server-side).
   geoIpBaseUrl: process.env.GEOIP_BASE_URL || "http://ip-api.com/json",
+
+  // Emails transaccionales (bienvenida + recuperar contraseña) vía Resend
+  // (ver src/services/email.ts). Sin RESEND_API_KEY seteada, el envío se
+  // salta silenciosamente (logueado) en vez de romper registro/login —
+  // nunca debe ser un bloqueante para esos flujos.
+  resendApiKey: process.env.RESEND_API_KEY || "",
+  // Mientras no haya un dominio propio verificado en Resend, "onboarding@
+  // resend.dev" es el remitente de prueba que Resend deja usar sin
+  // verificación (pero solo entrega a la casilla dueña de la cuenta de
+  // Resend) — configurable para el día que se verifique nowsee.com o el
+  // dominio que corresponda.
+  resendFromEmail: process.env.RESEND_FROM_EMAIL || "NowSee <onboarding@resend.dev>",
+  // Base para armar links absolutos dentro de los emails (botón "Entrar a
+  // NowSee", link de recuperar contraseña).
+  frontendUrl: process.env.FRONTEND_URL || "https://nowsee.netlify.app",
+  passwordResetTokenTtlMinutes: Number(process.env.PASSWORD_RESET_TTL_MINUTES || 120),
 };

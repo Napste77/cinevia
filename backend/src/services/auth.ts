@@ -1,8 +1,15 @@
 import { prisma } from "../db/prisma";
 import { hashPassword, verifyPassword } from "../utils/passwords";
-import { signAccessToken, generateRefreshToken, hashRefreshToken } from "../utils/jwt";
+import {
+  signAccessToken,
+  generateRefreshToken,
+  hashRefreshToken,
+  generatePasswordResetToken,
+  hashPasswordResetToken,
+} from "../utils/jwt";
 import { HttpError } from "../middleware/errorHandler";
 import { env } from "../config/env";
+import { sendWelcomeEmail, sendPasswordResetEmail } from "./email";
 
 export interface AuthTokens {
   accessToken: string;
@@ -44,6 +51,11 @@ export async function register(email: string, password: string, name?: string, u
   });
 
   const tokens = await issueTokens(user.id, userAgent);
+
+  // Best-effort y no bloqueante: si Resend falla o tarda, el registro ya
+  // se completó igual (ver services/email.ts — nunca tira).
+  sendWelcomeEmail(user.email, user.name).catch(() => {});
+
   return { user, ...tokens };
 }
 
@@ -114,4 +126,62 @@ export async function updateProfile(
   patch: { name?: string; avatarUrl?: string; language?: string; notifyNewReleases?: boolean; notifyComments?: boolean }
 ) {
   return prisma.user.update({ where: { id: userId }, data: patch });
+}
+
+/**
+ * "Olvidé mi contraseña": genera un token opaco, guarda solo su hash con
+ * vencimiento (PasswordResetToken), y manda el link por email.
+ *
+ * Siempre responde éxito aunque el email no exista — devolver 404 acá es
+ * un enumeration bug clásico (permite a cualquiera confirmar qué emails
+ * están registrados probando uno por uno).
+ */
+export async function requestPasswordReset(email: string): Promise<void> {
+  const normalizedEmail = email.trim().toLowerCase();
+  const user = await prisma.user.findUnique({ where: { email: normalizedEmail } });
+
+  // Cuentas de Google/Apple (sin passwordHash propia) no tienen contraseña
+  // que resetear — no hay nada que mandar, pero tampoco se revela nada.
+  if (!user || !user.passwordHash) return;
+
+  const token = generatePasswordResetToken();
+  const expiresAt = new Date(Date.now() + env.passwordResetTokenTtlMinutes * 60 * 1000);
+
+  await prisma.passwordResetToken.create({
+    data: { userId: user.id, tokenHash: hashPasswordResetToken(token), expiresAt },
+  });
+
+  const resetUrl = `${env.frontendUrl}/reset-password?token=${token}`;
+  await sendPasswordResetEmail(user.email, resetUrl, env.passwordResetTokenTtlMinutes);
+}
+
+/** Consume el token (una sola vez, si no venció) y setea la contraseña nueva. */
+export async function resetPassword(token: string, newPassword: string): Promise<void> {
+  if (!token) throw new HttpError(400, "Falta el token");
+  if (newPassword.length < 8) throw new HttpError(400, "La contraseña debe tener al menos 8 caracteres");
+
+  const tokenHash = hashPasswordResetToken(token);
+  const resetToken = await prisma.passwordResetToken.findFirst({ where: { tokenHash } });
+
+  if (!resetToken || resetToken.usedAt || resetToken.expiresAt < new Date()) {
+    throw new HttpError(400, "El link para restablecer la contraseña es inválido o venció. Pedí uno nuevo.");
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({
+      where: { id: resetToken.userId },
+      data: { passwordHash: await hashPassword(newPassword) },
+    }),
+    prisma.passwordResetToken.update({
+      where: { id: resetToken.id },
+      data: { usedAt: new Date() },
+    }),
+    // Por seguridad: al resetear la contraseña se cierran todas las
+    // sesiones activas (mismo criterio que un cambio de contraseña en
+    // cualquier plataforma seria — si alguien más tenía acceso, se corta).
+    prisma.userSession.updateMany({
+      where: { userId: resetToken.userId, revokedAt: null },
+      data: { revokedAt: new Date() },
+    }),
+  ]);
 }

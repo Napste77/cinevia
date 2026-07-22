@@ -55,6 +55,23 @@ authRouter.post("/auth/logout", async (req, res) => {
   res.status(204).end();
 });
 
+authRouter.post("/auth/forgot-password", async (req, res) => {
+  const { email } = req.body || {};
+  if (!email) throw new HttpError(400, "Falta el email");
+
+  await authService.requestPasswordReset(email);
+  // Mismo mensaje exista o no la cuenta (ver services/auth.ts).
+  res.json({ message: "Si el email está registrado, te llegará un link para restablecer tu contraseña." });
+});
+
+authRouter.post("/auth/reset-password", async (req, res) => {
+  const { token, password } = req.body || {};
+  if (!token || !password) throw new HttpError(400, "Faltan datos");
+
+  await authService.resetPassword(token, password);
+  res.json({ message: "Contraseña actualizada. Ya podés iniciar sesión." });
+});
+
 authRouter.get("/auth/me", requireAuth, async (req, res) => {
   const { user, stats } = await authService.getProfileWithStats(req.userId!);
   res.json({ user: serializeUser(user), stats });

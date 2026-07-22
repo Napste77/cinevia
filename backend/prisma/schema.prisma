@@ -316,13 +316,14 @@ model User {
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  sessions  UserSession[]
-  regions   UserRegion[]
-  ratings   UserRating[]
-  comments  UserComment[]
-  favorites UserFavorite[]
-  lists     UserList[]
-  views     UserView[]
+  sessions            UserSession[]
+  regions             UserRegion[]
+  ratings             UserRating[]
+  comments            UserComment[]
+  favorites           UserFavorite[]
+  lists               UserList[]
+  views               UserView[]
+  passwordResetTokens PasswordResetToken[]
 
   @@unique([authProvider, providerId], name: "provider_identity")
   @@map("users")
@@ -344,6 +345,25 @@ model UserSession {
 
   @@index([userId])
   @@map("user_sessions")
+}
+
+/// Token de "recuperar contraseña": se genera uno opaco random, se manda
+/// por email, y acá solo se guarda su hash (mismo patrón que el refresh
+/// token de UserSession — si la DB se filtra, no alcanza para resetear la
+/// contraseña de nadie). Expira a las 2hs y se marca `usedAt` al primer uso
+/// para que no sea reutilizable ni siquiera dentro de la ventana de validez.
+model PasswordResetToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @map("token_hash")
+  createdAt DateTime  @default(now()) @map("created_at")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("password_reset_tokens")
 }
 
 /// Historial de cambios de región (detectada al ingresar + cada cambio

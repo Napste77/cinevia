@@ -81,6 +81,15 @@ export default function AuthScreen({ navigation }: any) {
             secureTextEntry
           />
 
+          {mode === "login" && (
+            <Pressable
+              style={styles.forgotPasswordButton}
+              onPress={() => navigation.navigate("ForgotPassword")}
+            >
+              <Text style={styles.forgotPasswordText}>¿Olvidaste tu contraseña?</Text>
+            </Pressable>
+          )}
+
           {error && <Text style={styles.error}>{error}</Text>}
 
           <Pressable style={styles.submitButton} onPress={submit} disabled={loading}>
@@ -154,6 +163,8 @@ const styles = StyleSheet.create({
     marginBottom: 12,
   },
   error: { color: colors.error, fontFamily: fonts.body, fontSize: 13, marginBottom: 12 },
+  forgotPasswordButton: { alignSelf: "flex-end", marginBottom: 16, marginTop: -4 },
+  forgotPasswordText: { color: colors.onSurfaceVariant, fontFamily: fonts.body, fontSize: 13 },
   submitButton: {
     backgroundColor: colors.primaryContainer,
     borderRadius: radii.md,
