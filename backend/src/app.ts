@@ -15,6 +15,7 @@ import { ratingsRouter } from "./routes/ratings.routes";
 import { commentsRouter } from "./routes/comments.routes";
 import { favoritesRouter } from "./routes/favorites.routes";
 import { viewsRouter } from "./routes/views.routes";
+import { migrateRouter } from "./routes/migrate.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { prisma } from "./db/prisma";
 
@@ -32,14 +33,13 @@ export function createApp() {
   app.get("/health", (_req, res) => res.json({ ok: true }));
 
   /**
-   * A diferencia de /health (que solo confirma que el proceso Node
-   * está vivo), este endpoint hace una consulta real a la base. El
-   * plan free de Aiven apaga el servicio de MySQL solo por
-   * inactividad -- el cron externo que ya pegaba a /health cada 2
-   * minutos mantenia despierto el web service de Render, pero nunca
-   * tocaba la base, asi que Aiven se apagaba igual (causa del caido
-   * del 22/07/2026). El cron ahora debe apuntar aca para que la base
-   * tambien se mantenga activa.
+   * A diferencia de /health (que en Vercel no dice mucho — cada
+   * invocación arranca un runtime nuevo, no hay "proceso" que se pueda
+   * dormir como en Render), este endpoint hace una consulta real a la
+   * base. Útil para detectar problemas de conexión a Supabase y, si hace
+   * falta, como destino de un cron de keep-alive (el free tier de
+   * Supabase pausa el proyecto entero tras un período largo sin
+   * actividad — mucho menos agresivo que el de Aiven, pero no cero).
    */
   app.get("/health/db", async (_req, res) => {
     try {
@@ -67,6 +67,10 @@ export function createApp() {
   app.use(commentsRouter);
   app.use(favoritesRouter);
   app.use(viewsRouter);
+  // TEMPORAL — migración Aiven MySQL -> Supabase Postgres. Sacar este
+  // router (y el import de arriba) apenas termine la migración, ver
+  // src/routes/migrate.routes.ts.
+  app.use(migrateRouter);
 
   app.use(notFoundHandler);
   app.use(errorHandler);

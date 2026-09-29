@@ -10,18 +10,19 @@ tráiler y dónde verlo con deep link directo a la app).
 El frontend (este repo, en la raíz) **no habla con TMDB ni con ninguna API
 externa**: consume únicamente la API propia de NowSee, en `backend/`. Ese
 backend es el que consulta TMDB/Wikidata/Streaming Availability, normaliza
-los datos y los guarda en una base MySQL propia — la fuente real de
-información de la app, que se completa y actualiza sola con jobs de
-sincronización (diario/semanal/mensual) y bajo demanda cuando alguien pide
-algo que todavía no existe. Ver `backend/README.md` para el detalle
-completo (schema, endpoints, jobs, deploy en Hostinger).
+los datos y los guarda en una base Postgres propia (Supabase) — la fuente
+real de información de la app, que se completa y actualiza sola con jobs
+de sincronización (diario/semanal/mensual, por lotes) y bajo demanda
+cuando alguien pide algo que todavía no existe. Ver `backend/README.md`
+para el detalle completo (schema, endpoints, jobs, deploy en Vercel) y
+`HANDOFF.md` para el historial de cómo se llegó a este stack.
 
 ```
 Usuarios (Web / Android / iOS)
         │
-   API NowSee (backend/)
+   API NowSee (backend/, función serverless en Vercel)
         │
-  Base de datos NowSee (MySQL)
+  Base de datos NowSee (Postgres, Supabase) + caché (Upstash Redis)
         │
  TMDB · Wikidata · Streaming Availability API
 ```
@@ -33,8 +34,8 @@ Usuarios (Web / Android / iOS)
 npm install
 
 # 2. Levantar el backend (ver backend/README.md para el setup completo:
-#    requiere MySQL + una API key de TMDB, ninguna de las dos las toca
-#    este proyecto directamente)
+#    requiere un Postgres + una API key de TMDB, ninguna de las dos las
+#    toca este proyecto directamente)
 cd backend && npm install && npm run dev   # API en http://localhost:4000
 
 # 3. Apuntar el frontend a esa API
@@ -45,30 +46,25 @@ cd backend && npm install && npm run dev   # API en http://localhost:4000
 npx expo start --web
 ```
 
-## Deploy a Netlify
+## Deploy a Vercel
 
-El repo ya trae `netlify.toml` con el build command y carpeta de publish
-correctos:
+El repo ya trae `vercel.json` en la raíz con el build command, carpeta de
+salida y headers de caché correctos (mismo build que antes usaba Netlify
+— `expo export --platform web`, nada cambia del lado del código).
 
-```toml
-[build]
-  command = "npx expo export --platform web --source-maps"
-  publish = "dist"
-```
+1. En [vercel.com](https://vercel.com), New Project → elegir este repo de
+   GitHub. Dejar "Root Directory" en la raíz (NO `backend` — ese es un
+   proyecto de Vercel aparte, ver `backend/README.md`).
+2. Variable de entorno a configurar (Project Settings → Environment
+   Variables): `EXPO_PUBLIC_API_BASE_URL` → la URL pública del backend
+   (el otro proyecto de Vercel, ver `backend/README.md` para desplegarlo).
+3. Deploy. Cualquier push a la rama configurada como producción vuelve a
+   buildear y desplegar solo.
 
-Pasos:
-
-```bash
-npx netlify login
-npx netlify init      # o `netlify link` si ya existe el site
-npx netlify deploy --prod
-```
-
-Variable de entorno a configurar en Netlify (Site settings → Environment
-variables):
-
-- `EXPO_PUBLIC_API_BASE_URL` → la URL pública del backend ya deployado
-  (ver `backend/README.md` para desplegarlo en Hostinger).
+Netlify sigue funcionando igual si se prefiere no migrar el hosting del
+frontend (el `netlify.toml` no se tocó) — la migración real de esta ronda
+fue la base de datos (Aiven MySQL → Supabase Postgres) y el backend
+(Render → Vercel), ver `HANDOFF.md`.
 
 ## Qué incluye
 
@@ -203,11 +199,13 @@ cual.
 
 **Frontend**: Expo (React Native + react-native-web), TypeScript, React
 Navigation, Axios contra la API propia de NowSee. Deploy como sitio
-estático PWA en Netlify. Empaquetado como APK de Android vía Capacitor
-(mismo build web, ver sección "Capacitor / APK de Android" arriba).
+estático PWA en Vercel (o Netlify, ambos funcionan). Empaquetado como APK
+de Android vía Capacitor (mismo build web, ver sección "Capacitor / APK
+de Android" arriba).
 
 **Backend** (`backend/`): Node.js + TypeScript + Express + Prisma sobre
-MySQL. Ver `backend/README.md`.
+Postgres (Supabase), corriendo como función serverless en Vercel, con
+Upstash Redis como caché compartida. Ver `backend/README.md`.
 
 ## Limitaciones conocidas
 

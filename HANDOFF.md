@@ -1,13 +1,13 @@
 # NowSee — Contexto de handoff
 
-Este documento resume todo el trabajo hecho sobre este proyecto en la sesión
-de Claude Code que terminó con la rama `claude/app-install-option-missing-mozug7`.
-Está pensado para que otra sesión (o vos) pueda retomarlo sin tener que
-releer todo el historial de conversación.
+Este documento resume todo el trabajo hecho sobre este proyecto a lo largo
+de varias sesiones de Claude Code (y de Cowork). Está pensado para que
+otra sesión (o vos) pueda retomarlo sin tener que releer todo el
+historial de conversación.
 
 **Repo**: `napste77/cinevia`
-**Rama activa**: `claude/app-install-option-missing-mozug7` (todo pusheado, nada
-pendiente de commit al momento de escribir esto)
+**Rama activa**: `main` — el trabajo dejó de vivir en ramas de feature
+separadas a partir de la sección 3.4 (el deploy real lee de `main`).
 **Para el detalle técnico del proyecto en sí** (arquitectura, setup, deploy,
 stack): ver `README.md` (raíz) y `backend/README.md`. Este documento es sobre
 **qué se hizo y por qué**, no un manual de uso.
@@ -764,3 +764,229 @@ vi tocando varias cards rápido ya no se destilde con el fix desplegado
 (el bug se reprodujo y se entendió la causa antes del fix; falta
 repetir la prueba en producción una vez que Netlify termine de
 deployar este commit).
+
+## 11. Migración completa: Render + Aiven MySQL → Vercel + Supabase + Upstash Redis
+
+### 11.1. Por qué
+
+El usuario reportó que, a pesar de la migración a Aiven (sección 3.6) y
+del keep-alive de Render (sección 3.3/3.4), el sitio **seguía sintiéndose
+lento/innavegable**. Antes de meter otra migración grande se propuso un
+diagnóstico de 3 pasos (¿Render sigue desplegando desde la rama vieja en
+vez de `main`? ¿siguen corriendo los dos cron de keep-alive? ¿hay errores
+de consola nuevos al entrar a una ficha?) — el usuario decidió saltear ese
+diagnóstico y pedir la migración completa directamente ("migremos todo a
+las otras tecnologías; hagamos todo bien de una").
+
+**Importante para quien retome esto**: la causa raíz exacta de "sigue
+lento" en ESE momento puntual nunca se confirmó con certeza — quedó sin
+verificar, por ejemplo, si Render todavía apuntaba a la rama vieja (lo
+cual habría significado que ninguno de los fixes de las secciones 6-10
+estaba realmente en producción). Como esta migración deja Render por
+completo, ese punto queda mayormente sin efecto (ya no hay "rama que
+Render trackea" de la cual preocuparse) — pero si después de migrar
+*sigue* sintiéndose lento, vale la pena revisar los fixes de las secciones
+3.5/6.1 (deadlocks, queries redundantes) siguen aplicados tal cual en el
+código actual, no asumir que la migración de infraestructura sola alcanza.
+
+### 11.2. Qué cambió
+
+**Base de datos: Aiven MySQL → Supabase Postgres**
+- `backend/prisma/schema.prisma`: `datasource` pasa de `provider = "mysql"`
+  a `provider = "postgresql"`, con `directUrl` además de `url` (Supabase
+  necesita el pooler de PgBouncer para runtime — puerto 6543 — y una
+  conexión directa — puerto 5432 — para las migraciones, que no funcionan
+  bien a través de un pooler en modo transaction).
+- El historial de migraciones (`prisma/migrations/`) se regeneró desde
+  cero para Postgres (las migraciones de MySQL no son portables entre
+  motores) — la copia vieja queda en el scratchpad de la sesión, no en el
+  repo. Migraciones nuevas: `init_postgres`, `add_fulltext_search`,
+  `add_sync_cursor`.
+- **Búsqueda full-text**: MySQL usaba `@@fulltext` + `MATCH(...) AGAINST
+  (... IN NATURAL LANGUAGE MODE)`. Postgres no tiene equivalente directo
+  en el DSL de Prisma — se agregó a mano una columna generada
+  (`search_vector tsvector GENERATED ALWAYS AS (...) STORED`) + índice
+  GIN vía SQL crudo en la migración, y `src/services/search.ts` pasa a
+  usar `plainto_tsquery`/`ts_rank`. La columna se declara en
+  `schema.prisma` como `Unsupported("tsvector")` — SOLO para que `prisma
+  migrate dev` no la vea como "desconocida" y proponga borrarla en el
+  próximo cambio de schema; nunca se lee/escribe desde Prisma Client.
+  **Ojo para futuros cambios de schema**: `prisma migrate dev`/`--create-only`
+  va a seguir generando un `DROP INDEX`/`ALTER COLUMN` falso sobre
+  `search_vector` en cada diff nuevo (no sabe de la columna generada ni
+  del índice GIN) — hay que revisar y borrar esas líneas a mano de
+  cualquier migración nueva antes de aplicarla, igual que se hizo acá.
+- Todo lo demás (modelos, relaciones, enums) migró sin cambios de
+  comportamiento — es 1:1 el mismo schema lógico, solo el motor cambia.
+
+**Caché compartida: memoria de proceso → Upstash Redis**
+- En Render (proceso siempre vivo) una `Map` en memoria del módulo
+  alcanzaba para cachear el catálogo de plataformas (10 min) y
+  watch/providers de TMDB (1h). En Vercel cada invocación serverless
+  puede correr en una instancia nueva — esa memoria no sobrevive entre
+  requests.
+- `backend/src/utils/cache.ts` (nuevo): `getOrSetCache(key, ttlSeconds,
+  fetcher)` usa `@upstash/redis` (REST API, sin conexión TCP persistente
+  — hecha para serverless) si están `UPSTASH_REDIS_REST_URL`/`_TOKEN`;
+  si no, cae a una `Map` en memoria (sigue funcionando en dev local sin
+  Redis, solo que sin compartir caché entre instancias). Un error de
+  Redis nunca tira abajo el request — se loguea y sigue sin caché.
+  `src/services/platforms.ts` y `src/providers/tmdb.ts` (watch/providers)
+  se reescribieron para usar esto.
+
+**Backend: Render → función serverless de Vercel**
+- `backend/api/index.ts` (nuevo): exporta la MISMA app Express de
+  siempre (`createApp()`) como handler — Vercel invoca cualquier archivo
+  bajo `api/` que exporte una función `(req, res)`, y un app de Express
+  cumple esa firma tal cual (verificado localmente: se lo pasó a
+  `http.createServer()` directo, sin `.listen()`, y respondió igual que
+  siempre). `src/server.ts` (el entry point de Render/desarrollo local)
+  se deja intacto para seguir usándolo en `npm run dev`.
+  Deliberadamente NO se llama a `startInternalScheduler()` (node-cron)
+  desde `api/index.ts`: un cron en memoria no tiene sentido sin proceso
+  persistente.
+- `backend/vercel.json` (nuevo): `buildCommand: "npm run vercel-build"`
+  (corre `prisma migrate deploy`), rewrite de todo a `api/index.ts`,
+  `maxDuration: 60` en la función.
+- `package.json`: se agregó `postinstall: "prisma generate"` (Vercel
+  corre `npm install`, hace falta que el cliente de Prisma se regenere
+  solo) y `vercel-build: "prisma migrate deploy"`.
+
+**Jobs de sincronización: loop completo → lotes acotados por tiempo**
+- El patrón viejo (`POST /internal/sync/:job` responde 202 al toque y
+  sigue corriendo en background) **no es seguro en serverless**: Vercel
+  puede cortar la ejecución de la función en cualquier momento después de
+  responder, sin garantía de que el trabajo en background termine. Antes
+  esto no era un problema porque Render mantiene el proceso vivo
+  indefinidamente.
+- Los tres jobs (`daily`/`weekly`/`monthly`) se reescribieron como
+  máquinas de estado con fases explícitas (`src/jobs/dailySync.ts`,
+  `weeklySync.ts`, `monthlySync.ts`), guardando su progreso en la tabla
+  nueva `sync_cursors` (`src/jobs/cursor.ts`) cada vez que se acaba el
+  presupuesto de tiempo de la invocación (`TIME_BUDGET_MS = 45_000`,
+  margen real bajo el `maxDuration: 60` de Vercel). Cada invocación
+  retoma exactamente donde quedó la anterior — la próxima llamada al
+  mismo endpoint avanza el lote siguiente, hasta que la fase llega a
+  `"done"` y se limpia el cursor.
+  - `weeklySync`/`monthlySync`: el offset de paginación avanza por cada
+    ítem EXAMINADO (no solo los que se refrescan con éxito) — si
+    avanzara solo con los exitosos, un título que sigue fallando
+    quedaría siempre primero en el resultado y una invocación entera
+    podría quedarse reintentando el mismo ítem sin nunca llegar al
+    resto de la lista.
+  - `dailySync`: una falla de TMDB a mitad de camino (rate limit,
+    timeout, 5xx) se atrapa y el cursor se guarda tal cual estaba, en
+    vez de tirar un 500 que además perdería de vista en qué fase se
+    había quedado.
+- `POST /internal/sync/:job` pasa a responder **sincrónicamente** el
+  resultado real (`{ done, progress, ... }`) en vez de 202+background, y
+  ahora también acepta `GET` (Vercel Cron solo dispara GET) con dos
+  formas de autenticarse: el `X-Sync-Secret` de siempre, o el
+  `Authorization: Bearer <CRON_SECRET>` que Vercel agrega solo si se
+  configura esa env var y un cron en `vercel.json`
+  (`src/middleware/internalAuth.ts`). Como cada invocación ahora avanza
+  solo un lote, hay que llamarlo cada pocos minutos (cron externo tipo
+  cron-job.org, o Vercel Cron si el plan lo permite) en vez de una vez
+  al día — ver `backend/README.md`, sección "Sincronización".
+
+**Frontend: config de Vercel**
+- `vercel.json` (raíz, nuevo): mismo build command que Netlify (`expo
+  export --platform web --source-maps`), `outputDirectory: dist`,
+  rewrite catch-all a `index.html` para las rutas de la SPA (Vercel sirve
+  un archivo estático real del output directory antes de evaluar
+  rewrites, mismo comportamiento que el "existing files take precedence"
+  de `netlify.toml` — no hace falta excluir a mano las rutas de assets),
+  y los mismos headers de `Content-Type`/`Cache-Control` que ya tenía
+  `netlify.toml` (manifest, sw.js no-cache, `_expo/static`/`assets`
+  cacheados para siempre por llevar hash en el nombre).
+- Netlify se deja funcionando en paralelo (no se tocó `netlify.toml`) por
+  si se prefiere no migrar el hosting del frontend — la parte que de
+  verdad importaba migrar (base de datos + backend) es independiente de
+  dónde se sirva el bundle estático.
+
+**Migración de datos: Aiven (MySQL) → Supabase (Postgres)**
+- A diferencia de la migración anterior (Hostinger → Aiven, mismo motor
+  MySQL, resuelta con dos `PrismaClient` del mismo schema apuntando a
+  URLs distintas), esta cruza de motor — no se puede resolver así porque
+  el `schema.prisma` de este proyecto ahora es 100% Postgres.
+- `backend/src/routes/migrate.routes.ts` (nuevo, TEMPORAL — igual que la
+  vez anterior, se borra apenas se usa): lee el origen (Aiven) con
+  `mysql2` en crudo (`SELECT * FROM tabla`) y escribe el destino
+  (Supabase) con el Prisma Client normal de la app. Tres endpoints,
+  mismo patrón de siempre (protegidos con `X-Sync-Secret`):
+  `POST /internal/migrate/schema` (corre `prisma migrate deploy` contra
+  el destino), `POST /internal/migrate/copy` (copia las 24 tablas en
+  lotes de 200, respetando orden de FKs, con `skipDuplicates` para poder
+  reintentar sin duplicar), `GET /internal/migrate/verify` (compara
+  `COUNT(*)` de cada tabla entre origen y destino).
+- La conversión de columnas snake_case (MySQL) a campos camelCase
+  (Prisma) es automática para el 99% de los casos, con UNA excepción real
+  encontrada al testear (`original_language` en la base mapea al campo
+  `language` del modelo, no `originalLanguage` — un `@map` que cambia el
+  nombre entero, no solo el formato). Los booleans (`notify_new_releases`,
+  `verified`, `official`, `reported`) se coercionan explícitamente con
+  `Boolean(valor)` en vez de confiar en que el driver de MySQL los
+  devuelva ya como boolean de JS.
+- **Verificado**: la lógica de transformación de filas (mapeo de
+  columnas + coerción de booleans + fechas) se probó localmente contra
+  Postgres con filas sintéticas que imitan exactamente la forma en que
+  `mysql2` devuelve una fila real — ahí se encontró y arregló el bug de
+  `original_language`/`language`. **NO se pudo probar contra una MySQL
+  real** (ni Aiven, bloqueado por la red del sandbox, ni un MySQL local:
+  este sandbox no tiene el paquete `mysql-server` instalable — el repo de
+  Ubuntu devolvió 404 para esa versión puntual). Recomendación fuerte:
+  antes de confiar en el resultado de `/internal/migrate/copy` en
+  producción, revisar con cuidado el resultado de
+  `/internal/migrate/verify` (debe dar `match: true` en las 24 tablas)
+  antes de cortar `DATABASE_URL` al nuevo destino.
+
+### 11.3. Qué se verificó de verdad (y qué no)
+
+Verificado en este sandbox, con Postgres 16 instalado localmente (no
+estaba bloqueado, a diferencia de MySQL/Aiven/TMDB/Vercel/Supabase, todos
+inalcanzables desde acá):
+- El schema portado aplica limpio (`prisma migrate deploy`) contra
+  Postgres real, incluida la columna generada + índice GIN.
+- Búsqueda full-text: insertada una fila con `original_title =
+  "Interstellar"`, buscar "interstellar" la encuentra rankeada
+  correctamente vía `/search?q=...` corriendo el server real.
+- Los tres jobs de sync corren de punta a punta contra Postgres local
+  (verificado que `weekly`/`monthly` devuelven `done: true` con datos de
+  prueba, y que `daily` — que sí necesita TMDB real — guarda el cursor y
+  responde 200 con el error en vez de un 500 cuando TMDB no es
+  alcanzable).
+- El wrapper de Vercel (`api/index.ts`) se probó pasándolo directo a
+  `http.createServer()` sin `.listen()` — exactamente como lo invoca el
+  runtime de Vercel — y respondió igual que el server normal.
+- La lógica de migración de datos (mapeo de columnas) se probó con datos
+  sintéticos, encontrando el bug real de `language` mencionado arriba.
+
+**No se pudo verificar** (limitaciones del sandbox, no del código): nada
+que requiera alcanzar `onrender.com`, `aivencloud.com`, `supabase.co`,
+`vercel.com`, `upstash.io` o `api.themoviedb.org` de verdad — o sea, el
+deploy real a Vercel, la creación de los proyectos de Supabase/Upstash, la
+migración de datos contra la Aiven real, y el comportamiento real de
+Vercel Cron (límites de frecuencia por plan). Todo eso lo tiene que hacer
+y confirmar el usuario siguiendo `backend/README.md` → "Deploy en Vercel
++ Supabase".
+
+### 11.4. Pendiente (a hacer por el usuario, fuera de este sandbox)
+
+Ver la secuencia completa y en orden en `backend/README.md` → "Deploy en
+Vercel + Supabase". Resumen:
+1. Crear proyecto de Supabase (Postgres) y, opcionalmente, base de
+   Upstash Redis.
+2. Crear proyecto de Vercel para el backend, cargar env vars, deployar
+   (las tablas se crean solas vía `vercel-build`).
+3. Si había datos reales en Aiven: correr la migración
+   (`/internal/migrate/copy` → `/internal/migrate/verify`), confirmar
+   `match: true`, y recién ahí borrar `SOURCE_MYSQL_URL` y el archivo
+   `migrate.routes.ts` (commitear esa limpieza).
+4. Crear proyecto de Vercel para el frontend, cargar
+   `EXPO_PUBLIC_API_BASE_URL`, deployar.
+5. Actualizar `FRONTEND_URL` en el backend con la URL real del frontend.
+6. Configurar el cron de sincronización (cron-job.org o Vercel Cron)
+   apuntando a la nueva URL, cada pocos minutos (no una vez al día —
+   ahora los jobs avanzan de a lotes).
+7. Confirmar que la app se siente más rápida/estable que antes; recién
+   ahí dar de baja Render y Aiven.

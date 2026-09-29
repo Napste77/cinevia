@@ -5,14 +5,20 @@ import { upsertTv } from "./tv";
 import { mapWithConcurrency } from "../utils/concurrency";
 
 /**
- * Full-text search en MySQL (índice @@fulltext de title/original_title).
+ * Full-text search en Postgres contra la columna generada `search_vector`
+ * (tsvector + índice GIN, ver prisma/migrations/*_add_fulltext_search).
  * Se usa $queryRaw solo para obtener los IDs en orden de relevancia; los
  * datos completos se traen con el cliente normal de Prisma (tipado,
  * columnas en camelCase) y después se reordenan según ese ranking.
+ * `plainto_tsquery` tolera texto libre (no rompe si el usuario escribe
+ * caracteres especiales, a diferencia de `to_tsquery`).
  */
 async function fullTextSearchIds(table: "movies" | "tv_shows", query: string, limit: number) {
   const rows = await prisma.$queryRawUnsafe<{ id: number }[]>(
-    `SELECT id FROM ${table} WHERE MATCH(title, original_title) AGAINST (? IN NATURAL LANGUAGE MODE) LIMIT ?`,
+    `SELECT id FROM ${table}
+     WHERE search_vector @@ plainto_tsquery('simple', $1)
+     ORDER BY ts_rank(search_vector, plainto_tsquery('simple', $1)) DESC
+     LIMIT $2`,
     query,
     limit
   );

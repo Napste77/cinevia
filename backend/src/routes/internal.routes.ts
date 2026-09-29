@@ -20,25 +20,27 @@ internalRouter.post("/internal/seed", requireSyncSecret, async (_req, res) => {
 });
 
 /**
- * POST /internal/sync/:job  (header X-Sync-Secret)
- * Pensado para hostings donde no se puede dejar un proceso node corriendo
- * un cron propio (ej. Hostinger compartido, o un backend en Render): un
- * Cron Job de hPanel, o un cron externo gratuito (cron-job.org), pega acá
- * en vez de correr un script directo.
+ * POST/GET /internal/sync/:job  (header X-Sync-Secret, o el
+ * Authorization: Bearer que agrega Vercel Cron — ver internalAuth.ts)
  *
- * El job (sobre todo "daily") puede tardar varios minutos en terminar —
- * más de lo que cualquier cron por HTTP espera antes de cortar por
- * timeout. Por eso se dispara en segundo plano y se responde 202 al
- * toque; el resultado real queda en los logs del servicio (Render →
- * pestaña "Logs"), no en la respuesta HTTP.
+ * En Render (proceso siempre vivo) esto se disparaba en background y
+ * respondía 202 al toque, porque el job podía tardar varios minutos — más
+ * de lo que cualquier cron por HTTP espera. Eso ya NO es seguro en
+ * Vercel: una función serverless puede cortarse en cualquier momento
+ * después de responder, así que "seguir corriendo después del response"
+ * no tiene garantías. Ahora cada invocación corre UN LOTE acotado por
+ * tiempo (ver TIME_BUDGET_MS en cada job) y espera el resultado real
+ * antes de responder — Vercel Cron (vercel.json) llama a este mismo
+ * endpoint cada pocos minutos hasta que el job devuelve `done: true`.
  */
-internalRouter.post("/internal/sync/:job", requireSyncSecret, async (req, res) => {
+async function runSyncJob(req: import("express").Request, res: import("express").Response) {
   const job = String(req.params.job);
   if (!isJobName(job)) throw new HttpError(400, `Job desconocido: ${job}`);
 
-  res.status(202).json({ job, status: "started" });
+  const result = await JOBS[job]();
+  console.log(`[internal/sync] "${job}":`, result);
+  res.json(result);
+}
 
-  JOBS[job]()
-    .then((result) => console.log(`[internal/sync] "${job}" terminó:`, result))
-    .catch((e) => console.error(`[internal/sync] "${job}" falló:`, e));
-});
+internalRouter.post("/internal/sync/:job", requireSyncSecret, runSyncJob);
+internalRouter.get("/internal/sync/:job", requireSyncSecret, runSyncJob);

@@ -16,16 +16,20 @@
 // alcanza con tocar un solo lugar.
 
 generator client {
-  provider        = "prisma-client-js"
-  previewFeatures = ["fullTextIndex"]
+  provider = "prisma-client-js"
 }
 
 datasource db {
-  // MySQL: es lo que trae cualquier plan de Hostinger (compartido, cloud o
-  // VPS con el gestor de bases de datos de hPanel), así no depende de que
-  // el usuario instale Postgres a mano.
-  provider = "mysql"
-  url      = env("DATABASE_URL")
+  // Postgres administrado por Supabase. `url` apunta al connection pooler
+  // (PgBouncer, modo transaction) — necesario porque cada invocación
+  // serverless de Vercel abre su propia conexión, y sin pooler se agota el
+  // límite de conexiones de la base en segundos. `directUrl` apunta a la
+  // conexión directa (puerto 5432) y la usan `prisma migrate`/`db push`,
+  // que necesitan una sesión real (el pooler en modo transaction no
+  // soporta los comandos de DDL que corren las migraciones).
+  provider  = "postgresql"
+  url       = env("DATABASE_URL")
+  directUrl = env("DIRECT_DATABASE_URL")
 }
 
 enum ContentType {
@@ -90,9 +94,17 @@ model Movie {
 
   genres MovieGenre[]
 
+  /// Columna generada (tsvector) + índice GIN agregados a mano en
+  /// prisma/migrations/*_add_fulltext_search (Postgres no tiene un
+  /// equivalente directo al @@fulltext de MySQL en el DSL de Prisma). Se
+  /// declara acá como `Unsupported` SOLO para que `prisma migrate dev` no
+  /// la vea como una columna "desconocida" y proponga borrarla en el
+  /// próximo diff — nunca se lee ni se escribe desde Prisma Client (ver
+  /// src/services/search.ts, que la consulta con SQL crudo).
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
   @@index([popularity])
   @@index([releaseDate])
-  @@fulltext([title, originalTitle])
   @@map("movies")
 }
 
@@ -126,9 +138,11 @@ model TVShow {
 
   genres TVGenre[]
 
+  /// Ver la misma nota de búsqueda full-text en el modelo Movie.
+  searchVector Unsupported("tsvector")? @map("search_vector")
+
   @@index([popularity])
   @@index([firstAirDate])
-  @@fulltext([title, originalTitle])
   @@map("tv_shows")
 }
 
@@ -496,6 +510,22 @@ model Country {
   platforms PlatformAvailability[]
 
   @@map("countries")
+}
+
+/// Progreso de los jobs de sync (daily/weekly/monthly) entre invocaciones.
+/// En Vercel cada invocación serverless tiene un límite de tiempo (ver
+/// vercel.json) — un job que antes corría "hasta terminar" en un proceso
+/// siempre vivo (Render) ahora avanza de a un lote por invocación,
+/// guardando acá en qué fase/página/índice se quedó. Vercel Cron llama al
+/// mismo endpoint cada pocos minutos hasta que el job reporta `done`.
+model SyncCursor {
+  id        Int      @id @default(autoincrement())
+  job       String   @unique
+  /// Forma libre por job (fase actual + página/índice donde se quedó).
+  state     Json
+  updatedAt DateTime @updatedAt @map("updated_at")
+
+  @@map("sync_cursors")
 }
 
 /// Qué plataforma opera en qué país — independiente de qué títulos

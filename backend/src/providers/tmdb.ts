@@ -1,5 +1,6 @@
 import axios from "axios";
 import { env } from "../config/env";
+import { getOrSetCache } from "../utils/cache";
 
 /**
  * Adaptador de TMDB. Es el ÚNICO módulo de todo el sistema que sabe que
@@ -78,28 +79,23 @@ export async function tmdbGetDetail(mediaType: "movie" | "tv", tmdbId: number) {
 /**
  * watch/providers casi no cambia día a día, pero se consultaba en vivo en
  * CADA vista de ficha (de cualquier usuario, de cualquier país) porque
- * decide contra qué plataformas revisar streaming_links. Cache en memoria
- * de corta duración: le saca a TMDB una llamada redundante por visita sin
- * arriesgar datos desactualizados por mucho tiempo.
+ * decide contra qué plataformas revisar streaming_links. Cache
+ * compartida (Redis, ver utils/cache.ts) de corta duración: le saca a
+ * TMDB una llamada redundante por visita sin arriesgar datos
+ * desactualizados por mucho tiempo.
  */
-const WATCH_PROVIDERS_TTL_MS = 1000 * 60 * 60; // 1 hora
-const watchProvidersCache = new Map<string, { data: any; expiresAt: number }>();
+const WATCH_PROVIDERS_TTL_SECONDS = 60 * 60; // 1 hora
 
 export async function tmdbGetWatchProviders(
   mediaType: "movie" | "tv",
   tmdbId: number,
   country: string
 ) {
-  const cacheKey = `${mediaType}:${tmdbId}:${country}`;
-  const cached = watchProvidersCache.get(cacheKey);
-  if (cached && cached.expiresAt > Date.now()) {
-    return cached.data;
-  }
-
-  const res = await client.get(`/${mediaType}/${tmdbId}/watch/providers`);
-  const forCountry = res.data?.results?.[country] || null;
-  watchProvidersCache.set(cacheKey, { data: forCountry, expiresAt: Date.now() + WATCH_PROVIDERS_TTL_MS });
-  return forCountry;
+  const cacheKey = `tmdb:watch-providers:${mediaType}:${tmdbId}:${country}`;
+  return getOrSetCache(cacheKey, WATCH_PROVIDERS_TTL_SECONDS, async () => {
+    const res = await client.get(`/${mediaType}/${tmdbId}/watch/providers`);
+    return res.data?.results?.[country] || null;
+  });
 }
 
 export async function tmdbGetImages(mediaType: "movie" | "tv", tmdbId: number) {

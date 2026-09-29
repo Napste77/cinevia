@@ -13,6 +13,10 @@ export const env = {
   defaultCountry: process.env.DEFAULT_COUNTRY || "AR",
   syncSecret: required("SYNC_SECRET", "dev_sync_secret_change_me"),
   enableInternalCron: process.env.ENABLE_INTERNAL_CRON === "true",
+  // Vercel la define sola (Project Settings → Environment Variables) y la
+  // manda como `Authorization: Bearer <valor>` en cada invocación de un
+  // cron declarado en vercel.json — ver middleware/internalAuth.ts.
+  cronSecret: process.env.CRON_SECRET || "",
 
   jwtSecret: required("JWT_SECRET", "dev_jwt_secret_change_me"),
   accessTokenTtl: process.env.ACCESS_TOKEN_TTL || "15m",
