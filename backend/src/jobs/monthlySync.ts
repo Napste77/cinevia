@@ -8,7 +8,7 @@ import { loadCursor, saveCursor, clearCursor, createDeadline } from "./cursor";
 const PAGE_SIZE = 25;
 const OLD_RECORD_DAYS = 60;
 const JOB_NAME = "monthly";
-const TIME_BUDGET_MS = 45_000; // ver nota de margen en dailySync.ts
+const TIME_BUDGET_MS = 25_000; // ver nota en dailySync.ts (margen bajo timeout de cron/HTTP)
 
 type MonthlyState =
   | { phase: "cleanup" }

@@ -6,7 +6,7 @@ import { loadCursor, saveCursor, clearCursor, createDeadline } from "./cursor";
 
 const PAGE_SIZE = 50;
 const JOB_NAME = "weekly";
-const TIME_BUDGET_MS = 45_000; // ver nota de margen en dailySync.ts
+const TIME_BUDGET_MS = 25_000; // ver nota en dailySync.ts (margen bajo timeout de cron/HTTP)
 
 type WeeklyState = { phase: "movies"; offset: number } | { phase: "tv"; offset: number } | { phase: "done" };
 

@@ -13,10 +13,11 @@ const PLATFORM_PAGES = 1;
 const GENRE_PAGES = 1;
 const JOB_NAME = "daily";
 
-// Margen real bajo maxDuration de vercel.json (60s): deja tiempo de sobra
-// para que la invocación termine de escribir y responda antes de que
-// Vercel corte la ejecución de golpe a mitad de un upsert.
-const TIME_BUDGET_MS = 45_000;
+// 25s: bien por debajo del maxDuration de Vercel (60s) Y del timeout típico
+// de los clientes HTTP que disparan el job (cron-job.org corta ~30s), así
+// cada invocación devuelve limpia sin timeouts falsos. Como el cron llama
+// seguido, la pasada completa igual en varias tandas retomando el cursor.
+const TIME_BUDGET_MS = 25_000;
 
 type DailyState =
   | { phase: "movies"; page: number }
