@@ -7,7 +7,9 @@ import {
   StyleSheet,
 } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useNavigation } from "@react-navigation/native";
 import { TrendingItem } from "../types";
+import { useAuth } from "../context/AuthContext";
 import { colors, radii, fonts } from "../theme";
 import RatingBadge from "./RatingBadge";
 
@@ -39,10 +41,23 @@ function MediaCard({
   width?: number;
 }) {
   const [hovered, setHovered] = useState(false);
+  const { isAuthenticated } = useAuth();
+  const navigation = useNavigation<any>();
   const uri = item.poster_path;
   const year = item.release_date ? item.release_date.slice(0, 4) : null;
   const fav = isFavorite;
   const viewed = !!isViewed;
+
+  // Mi Lista y "Ya lo vi" son funcionalidades de cuenta: si un invitado
+  // toca esos botones, lo mandamos a crear cuenta en vez de guardar algo
+  // que no va a poder sincronizar.
+  const requireAccount = (fn?: () => void) => {
+    if (!isAuthenticated) {
+      navigation.navigate("Auth");
+      return;
+    }
+    fn?.();
+  };
 
   return (
     <Pressable
@@ -88,7 +103,7 @@ function MediaCard({
               style={[styles.actionButton, viewed && styles.viewedButtonActive]}
               onPress={(e: any) => {
                 e.stopPropagation?.();
-                onToggleViewed();
+                requireAccount(onToggleViewed);
               }}
               hitSlop={8}
             >
@@ -103,7 +118,7 @@ function MediaCard({
             style={[styles.actionButton, fav && styles.favoriteButtonActive]}
             onPress={(e: any) => {
               e.stopPropagation?.();
-              onToggleFavorite();
+              requireAccount(onToggleFavorite);
             }}
             hitSlop={8}
           >

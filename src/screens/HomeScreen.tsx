@@ -2,29 +2,31 @@ import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, View, StyleSheet } from "react-native";
 import { getTrendingByCountry, getHomeRows } from "../api/nowsee";
 import { TrendingItem, Platform } from "../types";
-import { HOME_PLATFORM_ROWS, GENRE_ROWS } from "../config/catalog";
+import { HOME_PLATFORM_ROWS } from "../config/catalog";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
 import Hero from "../components/Hero";
 import Row from "../components/Row";
 import TopBar from "../components/TopBar";
 import { useFavorites } from "../hooks/useFavorites";
+import { useAuth } from "../context/AuthContext";
 import { useRegion } from "../context/RegionContext";
 import { colors, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 
 const PROVIDER_IDS = HOME_PLATFORM_ROWS.map((p) => p.providerId);
-const GENRE_IDS = GENRE_ROWS.map((g) => g.genreId);
+// Los géneros ya no viven en el Home: tienen su propia pantalla (GenresScreen,
+// accesible desde el menú). El Home queda con tendencias + plataformas.
 
 export default function HomeScreen({ navigation }: any) {
   const { country } = useRegion();
   const { isDesktop } = useResponsive();
   const { isFavorite, toggleFavorite } = useFavorites();
+  const { isAuthenticated } = useAuth();
 
   const [trendingMovies, setTrendingMovies] = useState<TrendingItem[]>([]);
   const [trendingSeries, setTrendingSeries] = useState<TrendingItem[]>([]);
   const [platformRows, setPlatformRows] = useState<Record<number, TrendingItem[]>>({});
-  const [genreRowsData, setGenreRowsData] = useState<Record<number, TrendingItem[]>>({});
   const [availablePlatforms, setAvailablePlatforms] = useState<Platform[] | null>(null);
   const [loadingMovies, setLoadingMovies] = useState(true);
   const [loadingSeries, setLoadingSeries] = useState(true);
@@ -77,21 +79,20 @@ export default function HomeScreen({ navigation }: any) {
     };
   }, [country]);
 
-  // Las 15 filas restantes (plataformas de la región + una fila por
-  // provider/género) se piden en UN solo request, recién cuando ya
-  // resolvió la de películas: así no compiten por las conexiones
-  // concurrentes del navegador con el contenido crítico de arriba (Hero +
-  // primera fila), que es lo que de verdad define el LCP percibido.
+  // Las filas de plataforma de la región se piden en UN solo request,
+  // recién cuando ya resolvió la de películas: así no compiten por las
+  // conexiones concurrentes del navegador con el contenido crítico de
+  // arriba (Hero + primera fila), que es lo que define el LCP percibido.
+  // (Los géneros ya no se piden acá — están en su propia pantalla.)
   useEffect(() => {
     if (loadingMovies) return;
     let cancelled = false;
     setLoadingRows(true);
-    getHomeRows(country, PROVIDER_IDS, GENRE_IDS)
+    getHomeRows(country, PROVIDER_IDS, [])
       .then((bundle) => {
         if (cancelled) return;
         setAvailablePlatforms(bundle.platforms);
         setPlatformRows(bundle.platformRows);
-        setGenreRowsData(bundle.genreRows);
       })
       .catch((e) => console.error("Error cargando filas del Home", e))
       .finally(() => {
@@ -127,15 +128,13 @@ export default function HomeScreen({ navigation }: any) {
   type Section =
     | { key: string; kind: "trending-movies" }
     | { key: string; kind: "trending-series" }
-    | { key: string; kind: "platform"; platform: (typeof HOME_PLATFORM_ROWS)[number] }
-    | { key: string; kind: "genre"; genre: (typeof GENRE_ROWS)[number] };
+    | { key: string; kind: "platform"; platform: (typeof HOME_PLATFORM_ROWS)[number] };
 
   const sections = useMemo<Section[]>(
     () => [
       { key: "trending-movies", kind: "trending-movies" },
       { key: "trending-series", kind: "trending-series" },
       ...visiblePlatformRows.map((platform): Section => ({ key: platform.key, kind: "platform", platform })),
-      ...GENRE_ROWS.map((genre): Section => ({ key: genre.key, kind: "genre", genre })),
     ],
     [visiblePlatformRows]
   );
@@ -180,21 +179,9 @@ export default function HomeScreen({ navigation }: any) {
               />
             </View>
           );
-        case "genre":
-          return (
-            <View style={{ paddingHorizontal: hPad }}>
-              <Row
-                title={item.genre.label}
-                items={genreRowsData[item.genre.genreId] || []}
-                loading={loadingRows}
-                onItemPress={openDetail}
-                onSeeAllPress={() => openCategory(item.genre.key)}
-              />
-            </View>
-          );
       }
     },
-    [hPad, trendingMovies, trendingSeries, platformRows, genreRowsData, loadingMovies, loadingSeries, loadingRows, country]
+    [hPad, trendingMovies, trendingSeries, platformRows, loadingMovies, loadingSeries, loadingRows, country]
   );
 
   return (
@@ -215,7 +202,9 @@ export default function HomeScreen({ navigation }: any) {
               <Hero
                 item={heroItem}
                 isFavorite={isFavorite(heroItem)}
-                onToggleFavorite={() => toggleFavorite(heroItem)}
+                onToggleFavorite={() =>
+                  isAuthenticated ? toggleFavorite(heroItem) : navigation.navigate("Auth")
+                }
                 onOpenDetail={() => openDetail(heroItem)}
               />
             ) : (

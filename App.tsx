@@ -20,6 +20,7 @@ import DetailScreen from "./src/screens/DetailScreen";
 import MyListScreen from "./src/screens/MyListScreen";
 import ProfileScreen from "./src/screens/ProfileScreen";
 import CategoryScreen from "./src/screens/CategoryScreen";
+import GenresScreen from "./src/screens/GenresScreen";
 import AuthScreen from "./src/screens/AuthScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "./src/screens/ResetPasswordScreen";
@@ -56,6 +57,7 @@ const linking: LinkingOptions<any> = {
     screens: {
       Home: "",
       Search: "search",
+      Genres: "genres",
       MyList: "my-list",
       Profile: "profile",
       Category: "category/:slug",
@@ -140,6 +142,7 @@ export default function App() {
                 <Stack.Screen name="MyList" component={MyListScreen} />
                 <Stack.Screen name="Profile" component={ProfileScreen} />
                 <Stack.Screen name="Category" component={CategoryScreen} />
+                <Stack.Screen name="Genres" component={GenresScreen} />
                 <Stack.Screen name="Auth" component={AuthScreen} />
                 <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
                 <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />

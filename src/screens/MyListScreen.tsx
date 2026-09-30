@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from "react";
-import { View, Text, FlatList, StyleSheet } from "react-native";
+import { View, Text, Pressable, FlatList, StyleSheet } from "react-native";
+import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
 import MediaCard from "../components/MediaCard";
@@ -7,8 +8,9 @@ import FilterChip from "../components/FilterChip";
 import TopBar from "../components/TopBar";
 import { useFavorites } from "../hooks/useFavorites";
 import { useViews } from "../hooks/useViews";
+import { useAuth } from "../context/AuthContext";
 import { useResponsive } from "../hooks/useResponsive";
-import { colors, fonts, spacing } from "../theme";
+import { colors, fonts, radii, spacing } from "../theme";
 import { TrendingItem } from "../types";
 
 type WatchedFilter = "all" | "watched" | "unwatched";
@@ -16,6 +18,7 @@ type WatchedFilter = "all" | "watched" | "unwatched";
 export default function MyListScreen({ navigation }: any) {
   const { favorites, isFavorite, toggleFavorite } = useFavorites();
   const { isViewed, toggleViewed } = useViews();
+  const { isAuthenticated } = useAuth();
   const { isDesktop, columns, width } = useResponsive();
   const hPad = isDesktop ? spacing.marginDesktop : spacing.marginMobile;
   const gutter = 14;
@@ -31,6 +34,30 @@ export default function MyListScreen({ navigation }: any) {
     if (watchedFilter === "watched") return favorites.filter((item) => isViewed(item));
     return favorites.filter((item) => !isViewed(item));
   }, [favorites, watchedFilter, isViewed]);
+
+  // Mi Lista es una funcionalidad de cuenta (se sincroniza entre
+  // dispositivos): a los invitados les mostramos un llamado a crear cuenta
+  // en vez de la lista.
+  if (!isAuthenticated) {
+    return (
+      <AppShell active="MyList" onNavigate={goTo}>
+        <View style={styles.container}>
+          <TopBar title="Mi Lista" onSearchPress={() => goTo("Search")} onHomePress={() => goTo("Home")} />
+          <View style={[styles.gate, { paddingHorizontal: hPad }]}>
+            <MaterialIcons name="bookmark-border" size={48} color={colors.onSurfaceVariant} />
+            <Text style={styles.gateTitle}>Guardá tu lista con una cuenta</Text>
+            <Text style={styles.gateText}>
+              Creá una cuenta gratis para armar Mi Lista, marcar lo que ya viste y tener todo
+              sincronizado entre tus dispositivos.
+            </Text>
+            <Pressable style={styles.gateButton} onPress={() => navigation.navigate("Auth")}>
+              <Text style={styles.gateButtonText}>Crear cuenta / Iniciar sesión</Text>
+            </Pressable>
+          </View>
+        </View>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell active="MyList" onNavigate={goTo}>
@@ -106,4 +133,34 @@ const styles = StyleSheet.create({
     gap: 8,
     marginTop: 16,
   },
+  gate: {
+    flex: 1,
+    justifyContent: "center",
+    alignItems: "center",
+    gap: 12,
+    paddingBottom: 60,
+  },
+  gateTitle: {
+    color: colors.onSurface,
+    fontFamily: fonts.headline,
+    fontSize: 20,
+    textAlign: "center",
+    marginTop: 4,
+  },
+  gateText: {
+    color: colors.onSurfaceVariant,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 21,
+    textAlign: "center",
+    maxWidth: 420,
+  },
+  gateButton: {
+    backgroundColor: colors.primaryContainer,
+    borderRadius: radii.md,
+    paddingHorizontal: 22,
+    paddingVertical: 13,
+    marginTop: 8,
+  },
+  gateButtonText: { color: colors.onPrimaryContainer, fontFamily: fonts.label, fontSize: 14 },
 });
