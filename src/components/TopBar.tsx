@@ -7,9 +7,11 @@ import BrandLogo from "./BrandLogo";
 
 export default function TopBar({
   onSearchPress,
+  onHomePress,
   title,
 }: {
   onSearchPress: () => void;
+  onHomePress?: () => void;
   title?: string;
 }) {
   const { isDesktop } = useResponsive();
@@ -24,7 +26,7 @@ export default function TopBar({
       {isDesktop ? (
         <Text style={styles.title}>{title}</Text>
       ) : (
-        <BrandLogo style={styles.brand} />
+        <BrandLogo style={styles.brand} onPress={onHomePress} />
       )}
       <Pressable style={styles.searchButton} onPress={onSearchPress}>
         <MaterialIcons name="search" size={20} color={colors.onSurfaceVariant} />

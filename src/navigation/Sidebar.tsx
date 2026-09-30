@@ -14,7 +14,7 @@ export default function Sidebar({
 }) {
   return (
     <View style={styles.sidebar}>
-      <BrandLogo style={styles.brand} />
+      <BrandLogo style={styles.brand} onPress={() => onNavigate("Home")} />
       <View style={styles.nav}>
         {NAV_ITEMS.map((item) => {
           const isActive = item.key === active;

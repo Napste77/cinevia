@@ -1,5 +1,5 @@
 import React, { useCallback } from "react";
-import { View, Text, Image, Pressable, Switch, StyleSheet, ScrollView } from "react-native";
+import { View, Text, Image, Pressable, StyleSheet, ScrollView } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AppShell from "../navigation/AppShell";
@@ -11,12 +11,11 @@ import { useAuth } from "../context/AuthContext";
 import { useRegion } from "../context/RegionContext";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
-import InstallAppButton from "../components/InstallAppButton";
 import BrandLogo from "../components/BrandLogo";
 
 export default function ProfileScreen({ navigation }: any) {
   const { favorites } = useFavorites();
-  const { user, stats, isAuthenticated, logout, updateProfile, refreshProfile } = useAuth();
+  const { user, stats, isAuthenticated, logout, refreshProfile } = useAuth();
   const { country, setCountry } = useRegion();
   const { isDesktop } = useResponsive();
 
@@ -41,7 +40,7 @@ export default function ProfileScreen({ navigation }: any) {
   return (
     <AppShell active="Profile" onNavigate={goTo}>
       <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
-        <TopBar title="Perfil" onSearchPress={() => goTo("Search")} />
+        <TopBar title="Perfil" onSearchPress={() => goTo("Search")} onHomePress={() => goTo("Home")} />
 
         <View style={{ paddingHorizontal: hPad, paddingTop: 24, paddingBottom: 48 }}>
           <View style={styles.card}>
@@ -93,32 +92,6 @@ export default function ProfileScreen({ navigation }: any) {
               </>
             )}
           </View>
-
-          {isAuthenticated && (
-            <>
-              <Text style={styles.sectionLabel}>Notificaciones</Text>
-              <Text style={styles.hint}>Preparado para futuras versiones — todavía no se envía nada.</Text>
-              <View style={styles.toggleRow}>
-                <Text style={styles.toggleLabel}>Nuevos estrenos</Text>
-                <Switch
-                  value={user?.notifyNewReleases ?? true}
-                  onValueChange={(v) => updateProfile({ notifyNewReleases: v })}
-                  trackColor={{ true: colors.primary }}
-                />
-              </View>
-              <View style={styles.toggleRow}>
-                <Text style={styles.toggleLabel}>Respuestas a comentarios</Text>
-                <Switch
-                  value={user?.notifyComments ?? true}
-                  onValueChange={(v) => updateProfile({ notifyComments: v })}
-                  trackColor={{ true: colors.primary }}
-                />
-              </View>
-            </>
-          )}
-
-          <Text style={styles.sectionLabel}>Instalar la app</Text>
-          <InstallAppButton />
 
           <Text style={styles.sectionLabel}>
             Acerca de <BrandLogo />

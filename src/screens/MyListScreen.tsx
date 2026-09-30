@@ -35,7 +35,7 @@ export default function MyListScreen({ navigation }: any) {
   return (
     <AppShell active="MyList" onNavigate={goTo}>
       <View style={styles.container}>
-        <TopBar title="Mi Lista" onSearchPress={() => goTo("Search")} />
+        <TopBar title="Mi Lista" onSearchPress={() => goTo("Search")} onHomePress={() => goTo("Home")} />
 
         {favorites.length === 0 ? (
           <Text style={[styles.empty, { paddingHorizontal: hPad }]}>
