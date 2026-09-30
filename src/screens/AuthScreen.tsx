@@ -18,6 +18,7 @@ export default function AuthScreen({ navigation }: any) {
   const [password, setPassword] = useState("");
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
+  const [registeredEmail, setRegisteredEmail] = useState<string | null>(null);
 
   const goTo = (key: RouteKey) => navigation.navigate(key);
 
@@ -31,16 +32,43 @@ export default function AuthScreen({ navigation }: any) {
     try {
       if (mode === "login") {
         await login(email.trim(), password);
+        navigation.navigate("Profile");
       } else {
         await register(email.trim(), password, name.trim() || undefined);
+        // No navegamos: mostramos el aviso de "verificá tu email".
+        setRegisteredEmail(email.trim());
       }
-      navigation.navigate("Profile");
     } catch (e: any) {
       setError(e?.response?.data?.error || "Algo salió mal. Probá de nuevo.");
     } finally {
       setLoading(false);
     }
   };
+
+  if (registeredEmail) {
+    return (
+      <AppShell active={null} onNavigate={goTo}>
+        <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
+          <View style={[styles.successPanel, { paddingHorizontal: hPad }]}>
+            <View style={styles.successIcon}>
+              <MaterialIcons name="mark-email-read" size={30} color={colors.onPrimaryContainer} />
+            </View>
+            <Text style={styles.title}>¡Cuenta creada!</Text>
+            <Text style={styles.successText}>
+              Te enviamos un email de verificación a{"\n"}
+              <Text style={styles.successEmail}>{registeredEmail}</Text>.{"\n\n"}
+              Revisá tu casilla (y la carpeta de spam) y tocá el link para verificar. Ya podés navegar
+              el catálogo mientras tanto; para usar Mi Lista, calificar y comentar necesitás verificar
+              tu email.
+            </Text>
+            <Pressable style={styles.submitButton} onPress={() => navigation.navigate("Home")}>
+              <Text style={styles.submitText}>Explorar el catálogo</Text>
+            </Pressable>
+          </View>
+        </ScrollView>
+      </AppShell>
+    );
+  }
 
   return (
     <AppShell active={null} onNavigate={goTo}>
@@ -201,4 +229,29 @@ const styles = StyleSheet.create({
   },
   socialButtonDisabled: { opacity: 0.5 },
   socialButtonText: { color: colors.onSurfaceVariant, fontFamily: fonts.label, fontSize: 13 },
+  successPanel: {
+    maxWidth: 460,
+    width: "100%",
+    alignSelf: "center",
+    alignItems: "center",
+    paddingTop: 72,
+    paddingBottom: 48,
+    gap: 14,
+  },
+  successIcon: {
+    width: 60,
+    height: 60,
+    borderRadius: 30,
+    backgroundColor: colors.primaryContainer,
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  successText: {
+    color: colors.onSurfaceVariant,
+    fontFamily: fonts.body,
+    fontSize: 14,
+    lineHeight: 22,
+    textAlign: "center",
+  },
+  successEmail: { color: colors.onSurface, fontFamily: fonts.label },
 });

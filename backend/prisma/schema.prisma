@@ -194,6 +194,7 @@ model Platform {
 
   streamingLinks StreamingLink[]
   availability   PlatformAvailability[]
+  userPlatforms  UserPlatform[]
 
   @@map("platforms")
 }
@@ -327,17 +328,24 @@ model User {
   notifyNewReleases Boolean @default(true) @map("notify_new_releases")
   notifyComments    Boolean @default(true) @map("notify_comments")
 
+  /// Fecha en que el usuario verificó su email (null = sin verificar).
+  /// Hasta verificar puede navegar, pero no acciones de cuenta (Mi Lista,
+  /// "Ya lo vi", calificar, comentar) — ver middleware/auth.requireVerified.
+  emailVerified DateTime? @map("email_verified")
+
   createdAt DateTime @default(now()) @map("created_at")
   updatedAt DateTime @updatedAt @map("updated_at")
 
-  sessions            UserSession[]
-  regions             UserRegion[]
-  ratings             UserRating[]
-  comments            UserComment[]
-  favorites           UserFavorite[]
-  lists               UserList[]
-  views               UserView[]
-  passwordResetTokens PasswordResetToken[]
+  sessions                UserSession[]
+  regions                 UserRegion[]
+  ratings                 UserRating[]
+  comments                UserComment[]
+  favorites               UserFavorite[]
+  lists                   UserList[]
+  views                   UserView[]
+  passwordResetTokens     PasswordResetToken[]
+  emailVerificationTokens EmailVerificationToken[]
+  platforms               UserPlatform[]
 
   @@unique([authProvider, providerId], name: "provider_identity")
   @@map("users")
@@ -378,6 +386,41 @@ model PasswordResetToken {
 
   @@index([userId])
   @@map("password_reset_tokens")
+}
+
+/// Token de verificación de email: mismo esquema opaco+hash que el de
+/// recuperar contraseña. Se manda al registrarse; al usarlo se marca
+/// `User.emailVerified`. Un solo uso, con vencimiento.
+model EmailVerificationToken {
+  id        Int       @id @default(autoincrement())
+  userId    Int       @map("user_id")
+  tokenHash String    @map("token_hash")
+  createdAt DateTime  @default(now()) @map("created_at")
+  expiresAt DateTime  @map("expires_at")
+  usedAt    DateTime? @map("used_at")
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@map("email_verification_tokens")
+}
+
+/// Plataformas que el usuario declara tener (elegidas en el Perfil). Si un
+/// usuario tiene al menos una, el Home filtra las filas de plataforma a
+/// solo esas. Si no tiene ninguna, se muestran todas (comportamiento por
+/// defecto). Solo para usuarios con cuenta.
+model UserPlatform {
+  id         Int      @id @default(autoincrement())
+  userId     Int      @map("user_id")
+  platformId Int      @map("platform_id")
+  createdAt  DateTime @default(now()) @map("created_at")
+
+  user     User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  platform Platform @relation(fields: [platformId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, platformId])
+  @@index([userId])
+  @@map("user_platforms")
 }
 
 /// Historial de cambios de región (detectada al ingresar + cada cambio

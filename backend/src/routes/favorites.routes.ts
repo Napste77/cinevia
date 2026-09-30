@@ -3,7 +3,7 @@ import { ContentType } from "@prisma/client";
 import { prisma } from "../db/prisma";
 import * as favorites from "../services/favorites";
 import { serializeMovieListItem, serializeTvListItem } from "../serializers";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireVerified } from "../middleware/auth";
 import { HttpError } from "../middleware/errorHandler";
 
 export const favoritesRouter = Router();
@@ -26,7 +26,7 @@ favoritesRouter.get("/favorites", requireAuth, async (req, res) => {
   res.json({ results: await hydrateFavorites(rows) });
 });
 
-favoritesRouter.post("/favorites", requireAuth, async (req, res) => {
+favoritesRouter.post("/favorites", requireVerified, async (req, res) => {
   const contentType: ContentType = req.body?.type === "tv" ? "tv" : "movie";
   const contentId = Number(req.body?.id);
   if (!Number.isFinite(contentId)) throw new HttpError(400, "id inválido");
@@ -35,7 +35,7 @@ favoritesRouter.post("/favorites", requireAuth, async (req, res) => {
   res.status(204).end();
 });
 
-favoritesRouter.delete("/favorites/:type/:id", requireAuth, async (req, res) => {
+favoritesRouter.delete("/favorites/:type/:id", requireVerified, async (req, res) => {
   const contentType: ContentType = req.params.type === "tv" ? "tv" : "movie";
   const contentId = Number(req.params.id);
   if (!Number.isFinite(contentId)) throw new HttpError(400, "id inválido");
@@ -49,7 +49,7 @@ favoritesRouter.delete("/favorites/:type/:id", requireAuth, async (req, res) => 
  * dispositivo — sube lo que no estuviera ya en la cuenta y devuelve la
  * lista fusionada, ya lista para reemplazar el estado local.
  */
-favoritesRouter.post("/favorites/sync", requireAuth, async (req, res) => {
+favoritesRouter.post("/favorites/sync", requireVerified, async (req, res) => {
   const items = Array.isArray(req.body?.items) ? req.body.items : [];
   const parsed = items
     .map((it: any) => ({

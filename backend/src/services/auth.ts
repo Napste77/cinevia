@@ -6,10 +6,12 @@ import {
   hashRefreshToken,
   generatePasswordResetToken,
   hashPasswordResetToken,
+  generateEmailVerificationToken,
+  hashEmailVerificationToken,
 } from "../utils/jwt";
 import { HttpError } from "../middleware/errorHandler";
 import { env } from "../config/env";
-import { sendWelcomeEmail, sendPasswordResetEmail } from "./email";
+import { sendVerificationEmail, sendPasswordResetEmail } from "./email";
 
 export interface AuthTokens {
   accessToken: string;
@@ -52,11 +54,58 @@ export async function register(email: string, password: string, name?: string, u
 
   const tokens = await issueTokens(user.id, userAgent);
 
-  // Best-effort y no bloqueante: si Resend falla o tarda, el registro ya
-  // se completó igual (ver services/email.ts — nunca tira).
-  sendWelcomeEmail(user.email, user.name).catch(() => {});
+  // Manda el email de verificación (best-effort: si Resend falla o tarda,
+  // el registro ya se completó igual — el usuario puede pedir reenvío).
+  sendEmailVerification(user.id, user.email, user.name).catch(() => {});
 
   return { user, ...tokens };
+}
+
+/**
+ * Genera un token de verificación (opaco, se guarda solo su hash) y manda
+ * el link por email. Se usa al registrarse y en el reenvío manual.
+ */
+async function sendEmailVerification(userId: number, email: string, name?: string | null): Promise<void> {
+  const token = generateEmailVerificationToken();
+  const expiresAt = new Date(Date.now() + env.emailVerificationTtlHours * 60 * 60 * 1000);
+  await prisma.emailVerificationToken.create({
+    data: { userId, tokenHash: hashEmailVerificationToken(token), expiresAt },
+  });
+  const verifyUrl = `${env.frontendUrl}/verify-email?token=${token}`;
+  await sendVerificationEmail(email, verifyUrl, name);
+}
+
+/** Consume el token (una sola vez, si no venció) y marca el email como verificado. */
+export async function verifyEmail(token: string): Promise<void> {
+  if (!token) throw new HttpError(400, "Falta el token");
+  const tokenHash = hashEmailVerificationToken(token);
+  const row = await prisma.emailVerificationToken.findFirst({ where: { tokenHash } });
+
+  if (!row || row.usedAt || row.expiresAt < new Date()) {
+    throw new HttpError(400, "El link de verificación es inválido o venció. Pedí uno nuevo.");
+  }
+
+  await prisma.$transaction([
+    prisma.user.update({ where: { id: row.userId }, data: { emailVerified: new Date() } }),
+    prisma.emailVerificationToken.update({ where: { id: row.id }, data: { usedAt: new Date() } }),
+  ]);
+}
+
+/** Reenvía el email de verificación al usuario logueado (si todavía no verificó). */
+export async function resendVerification(userId: number): Promise<void> {
+  const user = await prisma.user.findUnique({ where: { id: userId } });
+  if (!user) throw new HttpError(404, "Usuario no encontrado");
+  if (user.emailVerified) return; // ya verificado, nada que reenviar
+  await sendEmailVerification(user.id, user.email, user.name);
+}
+
+/**
+ * Elimina la cuenta y TODOS sus datos. El borrado en cascada (onDelete:
+ * Cascade en el schema) se lleva sesiones, favoritos, vistos, ratings,
+ * comentarios, listas, regiones, tokens y plataformas del usuario.
+ */
+export async function deleteAccount(userId: number): Promise<void> {
+  await prisma.user.delete({ where: { id: userId } });
 }
 
 export async function login(email: string, password: string, userAgent?: string) {

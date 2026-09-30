@@ -15,6 +15,7 @@ import { ratingsRouter } from "./routes/ratings.routes";
 import { commentsRouter } from "./routes/comments.routes";
 import { favoritesRouter } from "./routes/favorites.routes";
 import { viewsRouter } from "./routes/views.routes";
+import { userPlatformsRouter } from "./routes/userPlatforms.routes";
 import { migrateRouter } from "./routes/migrate.routes";
 import { errorHandler, notFoundHandler } from "./middleware/errorHandler";
 import { prisma } from "./db/prisma";
@@ -67,6 +68,7 @@ export function createApp() {
   app.use(commentsRouter);
   app.use(favoritesRouter);
   app.use(viewsRouter);
+  app.use(userPlatformsRouter);
   // TEMPORAL — migración Aiven MySQL -> Supabase Postgres. Sacar este
   // router (y el import de arriba) apenas termine la migración, ver
   // src/routes/migrate.routes.ts.

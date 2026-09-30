@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { ContentType } from "@prisma/client";
 import { getRatingSummary, getUserRating, rateContent, deleteRating } from "../services/ratings";
-import { optionalAuth, requireAuth } from "../middleware/auth";
+import { optionalAuth, requireVerified } from "../middleware/auth";
 import { HttpError } from "../middleware/errorHandler";
 
 export const ratingsRouter = Router();
@@ -21,14 +21,14 @@ ratingsRouter.get("/ratings", optionalAuth, async (req, res) => {
   res.json({ ...summary, myRating });
 });
 
-ratingsRouter.post("/ratings", requireAuth, async (req, res) => {
+ratingsRouter.post("/ratings", requireVerified, async (req, res) => {
   const { contentType, contentId } = parseTarget(req);
   const value = Number(req.body?.value);
   const summary = await rateContent(req.userId!, contentType, contentId, value);
   res.json({ ...summary, myRating: value });
 });
 
-ratingsRouter.delete("/ratings", requireAuth, async (req, res) => {
+ratingsRouter.delete("/ratings", requireVerified, async (req, res) => {
   const { contentType, contentId } = parseTarget(req);
   const summary = await deleteRating(req.userId!, contentType, contentId);
   res.json({ ...summary, myRating: null });

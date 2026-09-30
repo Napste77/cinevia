@@ -72,9 +72,30 @@ authRouter.post("/auth/reset-password", async (req, res) => {
   res.json({ message: "Contraseña actualizada. Ya podés iniciar sesión." });
 });
 
+/** Verifica el email a partir del token del link (público: el token es la credencial). */
+authRouter.post("/auth/verify-email", async (req, res) => {
+  const { token } = req.body || {};
+  if (!token) throw new HttpError(400, "Falta el token");
+
+  await authService.verifyEmail(token);
+  res.json({ message: "Email verificado. Ya podés usar todas las funciones de tu cuenta." });
+});
+
+/** Reenvía el email de verificación al usuario logueado. */
+authRouter.post("/auth/resend-verification", requireAuth, async (req, res) => {
+  await authService.resendVerification(req.userId!);
+  res.json({ message: "Si tu cuenta no estaba verificada, te reenviamos el email de verificación." });
+});
+
 authRouter.get("/auth/me", requireAuth, async (req, res) => {
   const { user, stats } = await authService.getProfileWithStats(req.userId!);
   res.json({ user: serializeUser(user), stats });
+});
+
+/** Elimina la cuenta y todos sus datos (borrado en cascada). Requiere sesión. */
+authRouter.delete("/auth/me", requireAuth, async (req, res) => {
+  await authService.deleteAccount(req.userId!);
+  res.status(204).end();
 });
 
 authRouter.patch("/auth/me", requireAuth, async (req, res) => {

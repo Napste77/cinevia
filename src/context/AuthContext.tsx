@@ -7,11 +7,15 @@ interface AuthContextValue {
   stats: AuthStats | null;
   loading: boolean;
   isAuthenticated: boolean;
+  /** Logueado Y con el email verificado (habilita las acciones de cuenta). */
+  isVerified: boolean;
   login: (email: string, password: string) => Promise<void>;
   register: (email: string, password: string, name?: string) => Promise<void>;
   logout: () => Promise<void>;
   refreshProfile: () => Promise<void>;
   updateProfile: (patch: Parameters<typeof authApi.updateProfile>[0]) => Promise<void>;
+  resendVerification: () => Promise<void>;
+  deleteAccount: () => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null);
@@ -66,6 +70,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setUser(updated);
   }, []);
 
+  const resendVerification = useCallback(async () => {
+    await authApi.resendVerification();
+  }, []);
+
+  const deleteAccount = useCallback(async () => {
+    await authApi.deleteAccount();
+    setUser(null);
+    setStats(null);
+  }, []);
+
   return (
     <AuthContext.Provider
       value={{
@@ -73,11 +87,14 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         stats,
         loading,
         isAuthenticated: !!user,
+        isVerified: !!user?.emailVerified,
         login,
         register,
         logout,
         refreshProfile,
         updateProfile,
+        resendVerification,
+        deleteAccount,
       }}
     >
       {children}

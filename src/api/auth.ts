@@ -10,6 +10,8 @@ export interface AuthUser {
   authProvider: "email" | "google" | "apple";
   notifyNewReleases: boolean;
   notifyComments: boolean;
+  /** ISO string cuando el email fue verificado, null si todavía no. */
+  emailVerified: string | null;
 }
 
 export interface AuthStats {
@@ -80,4 +82,31 @@ export async function forgotPassword(email: string): Promise<void> {
 
 export async function resetPassword(token: string, password: string): Promise<void> {
   await client.post("/auth/reset-password", { token, password });
+}
+
+/** Verifica el email a partir del token del link (público). */
+export async function verifyEmail(token: string): Promise<void> {
+  await client.post("/auth/verify-email", { token });
+}
+
+/** Reenvía el email de verificación al usuario logueado. */
+export async function resendVerification(): Promise<void> {
+  await client.post("/auth/resend-verification", {});
+}
+
+/** Elimina la cuenta del usuario logueado (borrado en cascada en el backend). */
+export async function deleteAccount(): Promise<void> {
+  await client.delete("/auth/me");
+  setTokens(null);
+}
+
+/** Plataformas (tmdbIds) que el usuario declaró tener. */
+export async function getMyPlatforms(): Promise<number[]> {
+  const res = await client.get("/me/platforms");
+  return res.data.platforms || [];
+}
+
+export async function setMyPlatforms(platforms: number[]): Promise<number[]> {
+  const res = await client.put("/me/platforms", { platforms });
+  return res.data.platforms || [];
 }

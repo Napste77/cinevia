@@ -47,4 +47,5 @@ export const env = {
   // NowSee", link de recuperar contraseña).
   frontendUrl: process.env.FRONTEND_URL || "https://nowsee.netlify.app",
   passwordResetTokenTtlMinutes: Number(process.env.PASSWORD_RESET_TTL_MINUTES || 120),
+  emailVerificationTtlHours: Number(process.env.EMAIL_VERIFICATION_TTL_HOURS || 48),
 };

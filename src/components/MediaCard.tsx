@@ -41,19 +41,23 @@ function MediaCard({
   width?: number;
 }) {
   const [hovered, setHovered] = useState(false);
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isVerified } = useAuth();
   const navigation = useNavigation<any>();
   const uri = item.poster_path;
   const year = item.release_date ? item.release_date.slice(0, 4) : null;
   const fav = isFavorite;
   const viewed = !!isViewed;
 
-  // Mi Lista y "Ya lo vi" son funcionalidades de cuenta: si un invitado
-  // toca esos botones, lo mandamos a crear cuenta en vez de guardar algo
-  // que no va a poder sincronizar.
+  // Mi Lista y "Ya lo vi" son funcionalidades de cuenta verificada: un
+  // invitado va a crear cuenta (Auth); un logueado sin verificar va al
+  // Perfil, donde está el aviso para verificar el email.
   const requireAccount = (fn?: () => void) => {
     if (!isAuthenticated) {
       navigation.navigate("Auth");
+      return;
+    }
+    if (!isVerified) {
+      navigation.navigate("Profile");
       return;
     }
     fn?.();

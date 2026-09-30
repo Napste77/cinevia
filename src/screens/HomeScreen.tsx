@@ -1,6 +1,7 @@
 import React, { useCallback, useEffect, useMemo, useState } from "react";
 import { FlatList, View, StyleSheet } from "react-native";
 import { getTrendingByCountry, getHomeRows } from "../api/nowsee";
+import { getMyPlatforms } from "../api/auth";
 import { TrendingItem, Platform } from "../types";
 import { HOME_PLATFORM_ROWS } from "../config/catalog";
 import AppShell from "../navigation/AppShell";
@@ -22,23 +23,45 @@ export default function HomeScreen({ navigation }: any) {
   const { country } = useRegion();
   const { isDesktop } = useResponsive();
   const { isFavorite, toggleFavorite } = useFavorites();
-  const { isAuthenticated } = useAuth();
+  const { isAuthenticated, isVerified } = useAuth();
 
   const [trendingMovies, setTrendingMovies] = useState<TrendingItem[]>([]);
   const [trendingSeries, setTrendingSeries] = useState<TrendingItem[]>([]);
   const [platformRows, setPlatformRows] = useState<Record<number, TrendingItem[]>>({});
   const [availablePlatforms, setAvailablePlatforms] = useState<Platform[] | null>(null);
+  const [myPlatformIds, setMyPlatformIds] = useState<number[]>([]);
   const [loadingMovies, setLoadingMovies] = useState(true);
   const [loadingSeries, setLoadingSeries] = useState(true);
   const [loadingRows, setLoadingRows] = useState(true);
 
-  const visiblePlatformRows = useMemo(
-    () =>
-      availablePlatforms
-        ? HOME_PLATFORM_ROWS.filter((p) => availablePlatforms.some((ap) => ap.id === p.providerId))
-        : HOME_PLATFORM_ROWS,
-    [availablePlatforms]
-  );
+  // Plataformas que el usuario declaró tener (Perfil): si tiene alguna, el
+  // Home filtra sus filas de plataforma a solo esas. Sin cuenta o sin
+  // selección, se muestran todas las disponibles en la región.
+  useEffect(() => {
+    if (!isAuthenticated) {
+      setMyPlatformIds([]);
+      return;
+    }
+    let cancelled = false;
+    getMyPlatforms()
+      .then((ids) => {
+        if (!cancelled) setMyPlatformIds(ids);
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+    };
+  }, [isAuthenticated]);
+
+  const visiblePlatformRows = useMemo(() => {
+    let rows = availablePlatforms
+      ? HOME_PLATFORM_ROWS.filter((p) => availablePlatforms.some((ap) => ap.id === p.providerId))
+      : HOME_PLATFORM_ROWS;
+    if (myPlatformIds.length > 0) {
+      rows = rows.filter((p) => myPlatformIds.includes(p.providerId));
+    }
+    return rows;
+  }, [availablePlatforms, myPlatformIds]);
 
   // Películas y series se piden por separado (no con Promise.all) para que
   // el Hero pueda pintar apenas responde la primera, en vez de esperar
@@ -203,7 +226,11 @@ export default function HomeScreen({ navigation }: any) {
                 item={heroItem}
                 isFavorite={isFavorite(heroItem)}
                 onToggleFavorite={() =>
-                  isAuthenticated ? toggleFavorite(heroItem) : navigation.navigate("Auth")
+                  !isAuthenticated
+                    ? navigation.navigate("Auth")
+                    : !isVerified
+                    ? navigation.navigate("Profile")
+                    : toggleFavorite(heroItem)
                 }
                 onOpenDetail={() => openDetail(heroItem)}
               />

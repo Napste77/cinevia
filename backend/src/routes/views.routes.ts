@@ -3,7 +3,7 @@ import { ContentType } from "@prisma/client";
 import { prisma } from "../db/prisma";
 import * as views from "../services/views";
 import { serializeMovieListItem, serializeTvListItem } from "../serializers";
-import { requireAuth } from "../middleware/auth";
+import { requireAuth, requireVerified } from "../middleware/auth";
 import { HttpError } from "../middleware/errorHandler";
 
 export const viewsRouter = Router();
@@ -26,7 +26,7 @@ viewsRouter.get("/views", requireAuth, async (req, res) => {
   res.json({ results: await hydrateViews(rows) });
 });
 
-viewsRouter.post("/views", requireAuth, async (req, res) => {
+viewsRouter.post("/views", requireVerified, async (req, res) => {
   const contentType: ContentType = req.body?.type === "tv" ? "tv" : "movie";
   const contentId = Number(req.body?.id);
   if (!Number.isFinite(contentId)) throw new HttpError(400, "id inválido");
@@ -35,7 +35,7 @@ viewsRouter.post("/views", requireAuth, async (req, res) => {
   res.status(204).end();
 });
 
-viewsRouter.delete("/views/:type/:id", requireAuth, async (req, res) => {
+viewsRouter.delete("/views/:type/:id", requireVerified, async (req, res) => {
   const contentType: ContentType = req.params.type === "tv" ? "tv" : "movie";
   const contentId = Number(req.params.id);
   if (!Number.isFinite(contentId)) throw new HttpError(400, "id inválido");
@@ -45,7 +45,7 @@ viewsRouter.delete("/views/:type/:id", requireAuth, async (req, res) => {
 });
 
 /** Sube la lista local (anónima) de "vistos" al loguearse — mismo patrón que /favorites/sync. */
-viewsRouter.post("/views/sync", requireAuth, async (req, res) => {
+viewsRouter.post("/views/sync", requireVerified, async (req, res) => {
   const items = Array.isArray(req.body?.items) ? req.body.items : [];
   const parsed = items
     .map((it: any) => ({

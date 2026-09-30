@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { ContentType } from "@prisma/client";
 import * as comments from "../services/comments";
-import { requireAuth } from "../middleware/auth";
+import { requireVerified } from "../middleware/auth";
 import { HttpError } from "../middleware/errorHandler";
 
 export const commentsRouter = Router();
@@ -17,7 +17,7 @@ commentsRouter.get("/comments", async (req, res) => {
   res.json(result);
 });
 
-commentsRouter.post("/comments", requireAuth, async (req, res) => {
+commentsRouter.post("/comments", requireVerified, async (req, res) => {
   const contentType: ContentType = req.body?.type === "tv" ? "tv" : "movie";
   const contentId = Number(req.body?.id);
   if (!Number.isFinite(contentId)) throw new HttpError(400, "id inválido");
@@ -26,7 +26,7 @@ commentsRouter.post("/comments", requireAuth, async (req, res) => {
   res.status(201).json(comment);
 });
 
-commentsRouter.put("/comments/:id", requireAuth, async (req, res) => {
+commentsRouter.put("/comments/:id", requireVerified, async (req, res) => {
   const commentId = Number(req.params.id);
   if (!Number.isFinite(commentId)) throw new HttpError(400, "id inválido");
 
@@ -34,7 +34,7 @@ commentsRouter.put("/comments/:id", requireAuth, async (req, res) => {
   res.json(comment);
 });
 
-commentsRouter.delete("/comments/:id", requireAuth, async (req, res) => {
+commentsRouter.delete("/comments/:id", requireVerified, async (req, res) => {
   const commentId = Number(req.params.id);
   if (!Number.isFinite(commentId)) throw new HttpError(400, "id inválido");
 

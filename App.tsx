@@ -24,6 +24,7 @@ import GenresScreen from "./src/screens/GenresScreen";
 import AuthScreen from "./src/screens/AuthScreen";
 import ForgotPasswordScreen from "./src/screens/ForgotPasswordScreen";
 import ResetPasswordScreen from "./src/screens/ResetPasswordScreen";
+import VerifyEmailScreen from "./src/screens/VerifyEmailScreen";
 import { colors } from "./src/theme";
 import { AuthProvider } from "./src/context/AuthContext";
 import { RegionProvider } from "./src/context/RegionContext";
@@ -68,6 +69,7 @@ const linking: LinkingOptions<any> = {
       Auth: "login",
       ForgotPassword: "forgot-password",
       ResetPassword: "reset-password",
+      VerifyEmail: "verify-email",
     },
   },
 };
@@ -146,6 +148,7 @@ export default function App() {
                 <Stack.Screen name="Auth" component={AuthScreen} />
                 <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
                 <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+                <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
               </Stack.Navigator>
             </NavigationContainer>
           </ViewsProvider>

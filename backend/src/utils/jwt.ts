@@ -33,3 +33,12 @@ export function generatePasswordResetToken(): string {
 export function hashPasswordResetToken(token: string): string {
   return crypto.createHash("sha256").update(token).digest("hex");
 }
+
+/** Token de verificación de email: mismo esquema opaco+hash. */
+export function generateEmailVerificationToken(): string {
+  return crypto.randomBytes(32).toString("hex");
+}
+
+export function hashEmailVerificationToken(token: string): string {
+  return crypto.createHash("sha256").update(token).digest("hex");
+}

@@ -99,6 +99,27 @@ export async function sendWelcomeEmail(to: string, name?: string | null): Promis
   await sendEmail(to, "Bienvenido a NowSee", emailLayout(body));
 }
 
+export async function sendVerificationEmail(to: string, verifyUrl: string, name?: string | null): Promise<void> {
+  const greeting = name ? `Hola ${name.split(" ")[0]}` : "Hola";
+  const body = `
+    <h1 style="margin:0 0 12px 0;color:#dce1fb;font-family:Georgia,'Times New Roman',serif;font-size:22px;line-height:30px;">
+      ${greeting}, ¡bienvenido a NowSee! 🎬
+    </h1>
+    <p style="margin:0 0 8px 0;color:#9aa2c3;font-family:Helvetica,Arial,sans-serif;font-size:15px;line-height:24px;">
+      Solo falta un paso: <strong style="color:#dce1fb;">verificá tu email</strong> tocando el botón
+      de abajo. Recién ahí vas a poder armar tu Mi Lista, marcar lo que ya viste, calificar y comentar.
+    </p>
+    ${button("Verificar mi email", verifyUrl)}
+    <p style="margin:0 0 8px 0;color:#5b6485;font-family:Helvetica,Arial,sans-serif;font-size:13px;line-height:20px;">
+      Mientras tanto podés explorar el catálogo sin problema. Si no creaste esta cuenta, ignorá este email.
+    </p>
+    <p style="margin:0;color:#5b6485;font-family:Helvetica,Arial,sans-serif;font-size:12px;line-height:18px;word-break:break-all;">
+      Si el botón no funciona, copiá y pegá este link: ${verifyUrl}
+    </p>
+  `;
+  await sendEmail(to, "Verificá tu email en NowSee", emailLayout(body));
+}
+
 export async function sendPasswordResetEmail(to: string, resetUrl: string, ttlMinutes: number): Promise<void> {
   const hours = Math.round((ttlMinutes / 60) * 10) / 10;
   const body = `

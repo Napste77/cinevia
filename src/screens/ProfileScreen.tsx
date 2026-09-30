@@ -1,4 +1,4 @@
-import React, { useCallback } from "react";
+import React, { useCallback, useState } from "react";
 import { View, Text, Image, Pressable, StyleSheet, ScrollView } from "react-native";
 import { useFocusEffect } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
@@ -6,6 +6,7 @@ import AppShell from "../navigation/AppShell";
 import { RouteKey } from "../navigation/NavItems";
 import TopBar from "../components/TopBar";
 import RegionPicker from "../components/RegionPicker";
+import PlatformPreferences from "../components/PlatformPreferences";
 import { useFavorites } from "../hooks/useFavorites";
 import { useAuth } from "../context/AuthContext";
 import { useRegion } from "../context/RegionContext";
@@ -15,9 +16,35 @@ import BrandLogo from "../components/BrandLogo";
 
 export default function ProfileScreen({ navigation }: any) {
   const { favorites } = useFavorites();
-  const { user, stats, isAuthenticated, logout, refreshProfile } = useAuth();
+  const { user, stats, isAuthenticated, isVerified, logout, refreshProfile, resendVerification, deleteAccount } =
+    useAuth();
   const { country, setCountry } = useRegion();
   const { isDesktop } = useResponsive();
+
+  const [resendState, setResendState] = useState<"idle" | "sending" | "sent">("idle");
+  const [confirmingDelete, setConfirmingDelete] = useState(false);
+  const [deleting, setDeleting] = useState(false);
+
+  const onResend = async () => {
+    setResendState("sending");
+    try {
+      await resendVerification();
+      setResendState("sent");
+    } catch {
+      setResendState("idle");
+    }
+  };
+
+  const onDelete = async () => {
+    setDeleting(true);
+    try {
+      await deleteAccount();
+      navigation.navigate("Home");
+    } catch {
+      setDeleting(false);
+      setConfirmingDelete(false);
+    }
+  };
 
   // Las stats (películas vistas, calificaciones, etc.) solo se traían una
   // vez al loguearse -- si mirabas una peli y volvías a Perfil en la
@@ -75,10 +102,39 @@ export default function ProfileScreen({ navigation }: any) {
             </Text>
           )}
 
+          {isAuthenticated && !isVerified && (
+            <View style={styles.verifyBanner}>
+              <MaterialIcons name="mark-email-unread" size={22} color={colors.onPrimaryContainer} />
+              <View style={{ flex: 1 }}>
+                <Text style={styles.verifyTitle}>Verificá tu email</Text>
+                <Text style={styles.verifyText}>
+                  Te enviamos un link a {user?.email}. Verificá tu cuenta para usar Mi Lista, marcar lo
+                  que viste, calificar y comentar.
+                </Text>
+                <Pressable onPress={onResend} disabled={resendState !== "idle"} hitSlop={6}>
+                  <Text style={styles.verifyAction}>
+                    {resendState === "sending"
+                      ? "Reenviando…"
+                      : resendState === "sent"
+                      ? "Email reenviado ✓"
+                      : "Reenviar email de verificación"}
+                  </Text>
+                </Pressable>
+              </View>
+            </View>
+          )}
+
           <Text style={styles.sectionLabel}>Región</Text>
           <RegionPicker value={country} onChange={setCountry} />
           {!isAuthenticated && (
             <Text style={styles.hint}>Detectada automáticamente — cambiala cuando quieras.</Text>
+          )}
+
+          {isAuthenticated && (
+            <>
+              <Text style={styles.sectionLabel}>Mis plataformas</Text>
+              <PlatformPreferences />
+            </>
           )}
 
           <View style={styles.statsRow}>
@@ -92,6 +148,39 @@ export default function ProfileScreen({ navigation }: any) {
               </>
             )}
           </View>
+
+          {isAuthenticated && (
+            <>
+              <Text style={styles.sectionLabel}>Cuenta</Text>
+              {!confirmingDelete ? (
+                <Pressable style={styles.dangerButton} onPress={() => setConfirmingDelete(true)}>
+                  <MaterialIcons name="delete-outline" size={18} color={colors.error} />
+                  <Text style={styles.dangerText}>Eliminar mi cuenta</Text>
+                </Pressable>
+              ) : (
+                <View style={styles.confirmBox}>
+                  <Text style={styles.confirmText}>
+                    ¿Seguro? Se borran tu cuenta y todos tus datos (Mi Lista, vistos, calificaciones,
+                    comentarios). Esta acción no se puede deshacer.
+                  </Text>
+                  <View style={styles.confirmRow}>
+                    <Pressable
+                      style={styles.cancelButton}
+                      onPress={() => setConfirmingDelete(false)}
+                      disabled={deleting}
+                    >
+                      <Text style={styles.cancelText}>Cancelar</Text>
+                    </Pressable>
+                    <Pressable style={styles.dangerConfirmButton} onPress={onDelete} disabled={deleting}>
+                      <Text style={styles.dangerConfirmText}>
+                        {deleting ? "Eliminando…" : "Sí, eliminar"}
+                      </Text>
+                    </Pressable>
+                  </View>
+                </View>
+              )}
+            </>
+          )}
 
           <Text style={styles.sectionLabel}>
             Acerca de <BrandLogo />
@@ -191,4 +280,56 @@ const styles = StyleSheet.create({
   },
   toggleLabel: { color: colors.onSurface, fontFamily: fonts.body, fontSize: 14 },
   about: { color: colors.onSurfaceVariant, fontFamily: fonts.body, fontSize: 14, lineHeight: 22 },
+  verifyBanner: {
+    flexDirection: "row",
+    gap: 12,
+    backgroundColor: colors.primaryContainer,
+    borderRadius: radii.md,
+    padding: 14,
+    marginTop: 16,
+  },
+  verifyTitle: { color: colors.onPrimaryContainer, fontFamily: fonts.label, fontSize: 14, marginBottom: 4 },
+  verifyText: { color: colors.onPrimaryContainer, fontFamily: fonts.body, fontSize: 13, lineHeight: 19 },
+  verifyAction: {
+    color: colors.onPrimaryContainer,
+    fontFamily: fonts.label,
+    fontSize: 13,
+    marginTop: 8,
+    textDecorationLine: "underline",
+  },
+  dangerButton: {
+    flexDirection: "row",
+    alignItems: "center",
+    gap: 8,
+    alignSelf: "flex-start",
+    borderWidth: 1,
+    borderColor: colors.error,
+    borderRadius: radii.md,
+    paddingHorizontal: 16,
+    paddingVertical: 11,
+  },
+  dangerText: { color: colors.error, fontFamily: fonts.label, fontSize: 14 },
+  confirmBox: {
+    backgroundColor: colors.surfaceContainer,
+    borderRadius: radii.md,
+    padding: 14,
+    borderWidth: 1,
+    borderColor: colors.error,
+  },
+  confirmText: { color: colors.onSurface, fontFamily: fonts.body, fontSize: 13, lineHeight: 20 },
+  confirmRow: { flexDirection: "row", gap: 10, marginTop: 14 },
+  cancelButton: {
+    borderRadius: radii.md,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: "rgba(255,255,255,0.06)",
+  },
+  cancelText: { color: colors.onSurface, fontFamily: fonts.label, fontSize: 13 },
+  dangerConfirmButton: {
+    borderRadius: radii.md,
+    paddingHorizontal: 16,
+    paddingVertical: 10,
+    backgroundColor: colors.error,
+  },
+  dangerConfirmText: { color: colors.surface, fontFamily: fonts.label, fontSize: 13 },
 });
