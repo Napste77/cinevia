@@ -1,4 +1,4 @@
-import React, { createContext, useCallback, useContext, useEffect, useState } from "react";
+import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
 import * as authApi from "../api/auth";
 import { AuthStats, AuthUser } from "../api/auth";
 
@@ -45,6 +45,45 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     const { user, stats } = await authApi.getMe();
     setUser(user);
     setStats(stats);
+  }, []);
+
+  // Espejo síncrono de "¿hay sesión?" para el listener de foco de abajo:
+  // el handler se registra una sola vez, así que no puede leer `user`
+  // directo (quedaría clavado en el valor inicial null).
+  const authedRef = useRef(false);
+  useEffect(() => {
+    authedRef.current = !!user;
+  }, [user]);
+
+  // Si el usuario verifica su email en OTRA pestaña (el link del mail abre
+  // una pestaña nueva), esta pestaña seguiría con `emailVerified: null` y
+  // las acciones de cuenta quedarían bloqueadas hasta recargar. Al volver
+  // el foco / hacerse visible la pestaña, re-pedimos el perfil para que
+  // `isVerified` (y las stats) queden al día automáticamente.
+  useEffect(() => {
+    if (typeof window === "undefined" || !window.addEventListener) return;
+    const syncProfile = () => {
+      if (!authedRef.current) return;
+      authApi
+        .getMe()
+        .then(({ user, stats }) => {
+          setUser(user);
+          setStats(stats);
+        })
+        .catch(() => {
+          // sin red / token vencido: no rompemos la sesión acá, el flujo
+          // normal de la app ya maneja el 401 cuando corresponde.
+        });
+    };
+    const onVisible = () => {
+      if (document.visibilityState === "visible") syncProfile();
+    };
+    window.addEventListener("focus", syncProfile);
+    document.addEventListener("visibilitychange", onVisible);
+    return () => {
+      window.removeEventListener("focus", syncProfile);
+      document.removeEventListener("visibilitychange", onVisible);
+    };
   }, []);
 
   const login = useCallback(async (email: string, password: string) => {

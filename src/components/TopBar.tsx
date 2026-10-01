@@ -4,6 +4,7 @@ import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { colors, fonts, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 import BrandLogo from "./BrandLogo";
+import UserMenu from "./UserMenu";
 
 export default function TopBar({
   onSearchPress,
@@ -28,9 +29,12 @@ export default function TopBar({
       ) : (
         <BrandLogo style={styles.brand} onPress={onHomePress} />
       )}
-      <Pressable style={styles.searchButton} onPress={onSearchPress}>
-        <MaterialIcons name="search" size={20} color={colors.onSurfaceVariant} />
-      </Pressable>
+      <View style={styles.actions}>
+        <Pressable style={styles.searchButton} onPress={onSearchPress}>
+          <MaterialIcons name="search" size={20} color={colors.onSurfaceVariant} />
+        </Pressable>
+        <UserMenu />
+      </View>
     </View>
   );
 }
@@ -44,9 +48,14 @@ const styles = StyleSheet.create({
     backgroundColor: "rgba(12,19,36,0.85)",
     borderBottomWidth: 1,
     borderBottomColor: "rgba(255,255,255,0.06)",
+    // Establece un contexto de apilado por encima del contenido que sigue
+    // (Hero, filas), para que el desplegable del UserMenu no quede tapado.
+    position: "relative",
+    zIndex: 1000,
   },
   brand: { color: colors.onSurface, fontFamily: fonts.headline, fontSize: 20 },
   title: { color: colors.onSurface, fontFamily: fonts.headline, fontSize: 22 },
+  actions: { flexDirection: "row", alignItems: "center", gap: 10 },
   searchButton: {
     width: 40,
     height: 40,
