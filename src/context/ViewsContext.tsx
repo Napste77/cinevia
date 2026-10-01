@@ -1,22 +1,10 @@
 import React, { createContext, useCallback, useContext, useEffect, useRef, useState } from "react";
-import AsyncStorage from "@react-native-async-storage/async-storage";
 import { TrendingItem } from "../types";
 import { useAuth } from "./AuthContext";
-import { getViews, markViewed, unmarkViewed, syncViews } from "../api/social";
-
-const STORAGE_KEY = "nowsee:views";
+import { getViews, markViewed, unmarkViewed } from "../api/social";
 
 function keyOf(item: Pick<TrendingItem, "id" | "media_type">) {
   return `${item.media_type}-${item.id}`;
-}
-
-async function readLocal(): Promise<TrendingItem[]> {
-  try {
-    const raw = await AsyncStorage.getItem(STORAGE_KEY);
-    return raw ? JSON.parse(raw) : [];
-  } catch {
-    return [];
-  }
 }
 
 interface ViewsContextValue {
@@ -29,23 +17,17 @@ interface ViewsContextValue {
 const ViewsContext = createContext<ViewsContextValue | null>(null);
 
 /**
- * "Ya lo vi": mismo patrón que FavoritesContext — estado compartido por
- * toda la app, con marca manual independiente de la que deja abrir una
- * ficha (esa sigue siendo automática, ver backend/src/services/detail.ts).
- * Sin cuenta vive en el dispositivo (AsyncStorage); con cuenta se
- * sincroniza al backend y se fusiona al loguearse.
+ * "Ya lo vi": igual que FavoritesContext, es SOLO de cuenta. Sin sesión no
+ * hay marcas (la UI manda a crear cuenta antes), así que `views` queda
+ * vacío cuando no hay usuario — nada local ni "pegado" al desloguearse.
  */
 export function ViewsProvider({ children }: { children: React.ReactNode }) {
   const { isAuthenticated } = useAuth();
   const [views, setViews] = useState<TrendingItem[]>([]);
   const [loaded, setLoaded] = useState(false);
-  const wasAuthenticated = useRef(isAuthenticated);
 
-  // Ver el comentario equivalente en FavoritesContext.tsx: este ref es la
-  // fuente de verdad síncrona que evita que, al tocar "Ya lo vi" en varias
-  // cards seguidas y rápido, cada toggle pise el cambio del anterior por
-  // partir todos del mismo `views` viejo (el useState solo se usa para
-  // pintar la UI, no para calcular el próximo estado).
+  // Ver el comentario equivalente en FavoritesContext.tsx (ref síncrono que
+  // evita que toggles rápidos y seguidos se pisen entre sí).
   const viewsRef = useRef<TrendingItem[]>([]);
 
   const applyViews = useCallback((next: TrendingItem[]) => {
@@ -54,29 +36,26 @@ export function ViewsProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   useEffect(() => {
+    let cancelled = false;
     (async () => {
       setLoaded(false);
+      if (!isAuthenticated) {
+        applyViews([]);
+        setLoaded(true);
+        return;
+      }
       try {
-        if (isAuthenticated) {
-          const justLoggedIn = !wasAuthenticated.current;
-          if (justLoggedIn) {
-            const local = await readLocal();
-            const merged = local.length > 0 ? await syncViews(local) : await getViews();
-            applyViews(merged);
-            await AsyncStorage.removeItem(STORAGE_KEY);
-          } else {
-            applyViews(await getViews());
-          }
-        } else {
-          applyViews(await readLocal());
-        }
+        const rows = await getViews();
+        if (!cancelled) applyViews(rows);
       } catch (e) {
         console.error("Error cargando Ya lo vi", e);
       } finally {
-        wasAuthenticated.current = isAuthenticated;
-        setLoaded(true);
+        if (!cancelled) setLoaded(true);
       }
     })();
+    return () => {
+      cancelled = true;
+    };
   }, [isAuthenticated, applyViews]);
 
   const isViewed = useCallback(
@@ -86,6 +65,8 @@ export function ViewsProvider({ children }: { children: React.ReactNode }) {
 
   const toggleViewed = useCallback(
     async (item: TrendingItem) => {
+      if (!isAuthenticated) return; // guardarraíl: solo con cuenta
+
       const key = keyOf(item);
       const current = viewsRef.current;
       const wasViewed = current.some((v) => keyOf(v) === key);
@@ -93,16 +74,10 @@ export function ViewsProvider({ children }: { children: React.ReactNode }) {
       applyViews(next); // acción inmediata, sin esperar la red
 
       try {
-        if (isAuthenticated) {
-          if (wasViewed) await unmarkViewed(item.media_type, item.id);
-          else await markViewed(item.media_type, item.id);
-        } else {
-          await AsyncStorage.setItem(STORAGE_KEY, JSON.stringify(next));
-        }
+        if (wasViewed) await unmarkViewed(item.media_type, item.id);
+        else await markViewed(item.media_type, item.id);
       } catch (e) {
         console.error("Error actualizando Ya lo vi", e);
-        // Revierte solo el cambio de ESTE toggle sobre el estado actual,
-        // no pisa con una foto vieja si hubo otros toggles mientras tanto.
         const afterFailure = viewsRef.current;
         const stillApplied = afterFailure.some((v) => keyOf(v) === key) !== wasViewed;
         if (stillApplied) {
