@@ -21,6 +21,7 @@ import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 import { useFavorites } from "../hooks/useFavorites";
 import { useViews } from "../hooks/useViews";
+import { useAuth } from "../context/AuthContext";
 import { useRegion } from "../context/RegionContext";
 import Chip from "../components/Chip";
 import ProviderBadge from "../components/ProviderBadge";
@@ -37,9 +38,24 @@ export default function DetailScreen({ route, navigation }: any) {
   const { isDesktop } = useResponsive();
   const { isFavorite, toggleFavorite } = useFavorites();
   const { isViewed, toggleViewed } = useViews();
+  const { isAuthenticated, isVerified } = useAuth();
   const [data, setData] = useState<DetailData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(false);
+
+  // Mi Lista / "Ya lo vi" son de cuenta verificada: invitado -> login,
+  // logueado sin verificar -> Perfil (donde está el aviso de verificación).
+  const requireAccount = (fn: () => void) => {
+    if (!isAuthenticated) {
+      navigation.navigate("Auth");
+      return;
+    }
+    if (!isVerified) {
+      navigation.navigate("Profile");
+      return;
+    }
+    fn();
+  };
 
   useEffect(() => {
     let cancelled = false;
@@ -139,7 +155,9 @@ export default function DetailScreen({ route, navigation }: any) {
             <View style={styles.actionButtonsRow}>
               <Pressable
                 style={[styles.favButton, fav && styles.favButtonActive]}
-                onPress={() => toggleFavorite({ ...data, id: data.id, media_type: data.media_type })}
+                onPress={() =>
+                  requireAccount(() => toggleFavorite({ ...data, id: data.id, media_type: data.media_type }))
+                }
               >
                 <MaterialIcons
                   name={fav ? "check" : "add"}
@@ -153,7 +171,9 @@ export default function DetailScreen({ route, navigation }: any) {
 
               <Pressable
                 style={[styles.favButton, viewed && styles.viewedButtonActive]}
-                onPress={() => toggleViewed({ ...data, id: data.id, media_type: data.media_type })}
+                onPress={() =>
+                  requireAccount(() => toggleViewed({ ...data, id: data.id, media_type: data.media_type }))
+                }
               >
                 <MaterialIcons
                   name="visibility"
