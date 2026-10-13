@@ -8,10 +8,15 @@ npm-debug.*
 .DS_Store
 .claude/
 
-# Android: `npx cap add android` generó su propio android/.gitignore que ya
-# excluye build/, .gradle/, local.properties, los assets web copiados
-# (app/src/main/assets/public) y los config.json generados — no hace falta
-# duplicar esas reglas acá.
+# Proyectos nativos: con el workflow de Expo (CNG / prebuild) las carpetas
+# android/ e ios/ son ARTEFACTOS generados por `npx expo prebuild` — no se
+# versionan. Cada quien las regenera en su máquina con `expo prebuild`.
+# (La android/ vieja era de Capacitor; se dejó de versionar al migrar a EAS.)
+/android/
+/ios/
 
-# iOS (cuando se agregue la plataforma con `npx cap add ios`, va a traer su
-# propio .gitignore igual que Android).
+# Build nativo / EAS
+*.apk
+*.aab
+*.keystore
+*.jks
