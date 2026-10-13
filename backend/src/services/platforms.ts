@@ -32,12 +32,19 @@ export async function listPlatforms() {
 
 /** Solo las plataformas que operan en `countryCode` (según platform_availability). */
 export async function listPlatformsByCountry(countryCode: string) {
-  return getOrSetCache(`platforms:by-country:${countryCode}`, CACHE_TTL_SECONDS, () =>
+  const rows = await getOrSetCache(`platforms:by-country:${countryCode}`, CACHE_TTL_SECONDS, () =>
     prisma.platform.findMany({
       where: { availability: { some: { country: { code: countryCode } } } },
       orderBy: { name: "asc" },
     })
   );
+  // Un país recién agregado a data/countries.ts todavía no tiene filas en
+  // platform_availability hasta el próximo seed. En vez de dejar el Home sin
+  // ninguna fila de plataforma, devolvemos el catálogo completo como fallback
+  // (las plataformas que curamos son globales; si alguna no tiene catálogo
+  // real en ese mercado, su fila queda vacía con su mensaje, no rompe nada).
+  if (!rows || rows.length === 0) return listPlatforms();
+  return rows;
 }
 
 export async function getPlatformIdByTmdbId(tmdbId: number): Promise<number | null> {
