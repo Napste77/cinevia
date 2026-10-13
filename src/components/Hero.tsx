@@ -1,5 +1,6 @@
 import React from "react";
-import { View, Text, Image, Pressable, StyleSheet } from "react-native";
+import { View, Text, Pressable, StyleSheet } from "react-native";
+import { Image } from "expo-image";
 import { LinearGradient } from "expo-linear-gradient";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { TrendingItem } from "../types";
@@ -26,7 +27,16 @@ export default function Hero({
 
   return (
     <View style={[styles.container, { height }]}>
-      {uri && <Image source={{ uri }} style={StyleSheet.absoluteFillObject} />}
+      {uri && (
+        <Image
+          source={{ uri }}
+          style={StyleSheet.absoluteFillObject}
+          contentFit="cover"
+          transition={250}
+          cachePolicy="memory-disk"
+          priority="high"
+        />
+      )}
       <LinearGradient
         colors={["transparent", "rgba(12,19,36,0.4)", colors.surface]}
         style={StyleSheet.absoluteFillObject}

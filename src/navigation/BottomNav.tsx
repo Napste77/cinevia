@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { NAV_ITEMS, RouteKey } from "./NavItems";
 import { colors, fonts } from "../theme";
 
@@ -11,8 +12,11 @@ export default function BottomNav({
   active: RouteKey | null;
   onNavigate: (key: RouteKey) => void;
 }) {
+  // En nativo el gesto/barra de inicio ocupa la franja de abajo: sumamos el
+  // inset para que los íconos no queden tapados. En web insets.bottom = 0.
+  const insets = useSafeAreaInsets();
   return (
-    <View style={styles.bar}>
+    <View style={[styles.bar, { height: 68 + insets.bottom, paddingBottom: insets.bottom }]}>
       {NAV_ITEMS.map((item) => {
         const isActive = item.key === active;
         return (

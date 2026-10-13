@@ -1,6 +1,8 @@
 import React, { useEffect } from "react";
 import { View, Platform } from "react-native";
 import { StatusBar } from "expo-status-bar";
+import { GestureHandlerRootView } from "react-native-gesture-handler";
+import { SafeAreaProvider } from "react-native-safe-area-context";
 import { NavigationContainer, LinkingOptions, useNavigationContainerRef } from "@react-navigation/native";
 import { createNativeStackNavigator } from "@react-navigation/native-stack";
 import {
@@ -131,29 +133,38 @@ export default function App() {
   }
 
   return (
-    <AuthProvider>
-      <RegionProvider>
-        <FavoritesProvider>
-          <ViewsProvider>
-            <NavigationContainer ref={navigationRef} linking={linking}>
-              <StatusBar style="light" />
-              <Stack.Navigator screenOptions={{ headerShown: false }}>
-                <Stack.Screen name="Home" component={HomeScreen} />
-                <Stack.Screen name="Search" component={SearchScreen} />
-                <Stack.Screen name="Detail" component={DetailScreen} />
-                <Stack.Screen name="MyList" component={MyListScreen} />
-                <Stack.Screen name="Profile" component={ProfileScreen} />
-                <Stack.Screen name="Category" component={CategoryScreen} />
-                <Stack.Screen name="Genres" component={GenresScreen} />
-                <Stack.Screen name="Auth" component={AuthScreen} />
-                <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
-                <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
-                <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
-              </Stack.Navigator>
-            </NavigationContainer>
-          </ViewsProvider>
-        </FavoritesProvider>
-      </RegionProvider>
-    </AuthProvider>
+    // GestureHandlerRootView tiene que ser el nodo más externo para que los
+    // gestos nativos (swipe-back del stack, etc.) funcionen en Android/iOS.
+    // SafeAreaProvider expone los insets (notch, barra de estado, home
+    // indicator) que consumen AppShell/TopBar/BottomNav para ir edge-to-edge
+    // sin tapar contenido. En web ambos son transparentes (insets = 0).
+    <GestureHandlerRootView style={{ flex: 1 }}>
+      <SafeAreaProvider>
+        <AuthProvider>
+          <RegionProvider>
+            <FavoritesProvider>
+              <ViewsProvider>
+                <NavigationContainer ref={navigationRef} linking={linking}>
+                  <StatusBar style="light" translucent />
+                  <Stack.Navigator screenOptions={{ headerShown: false }}>
+                    <Stack.Screen name="Home" component={HomeScreen} />
+                    <Stack.Screen name="Search" component={SearchScreen} />
+                    <Stack.Screen name="Detail" component={DetailScreen} />
+                    <Stack.Screen name="MyList" component={MyListScreen} />
+                    <Stack.Screen name="Profile" component={ProfileScreen} />
+                    <Stack.Screen name="Category" component={CategoryScreen} />
+                    <Stack.Screen name="Genres" component={GenresScreen} />
+                    <Stack.Screen name="Auth" component={AuthScreen} />
+                    <Stack.Screen name="ForgotPassword" component={ForgotPasswordScreen} />
+                    <Stack.Screen name="ResetPassword" component={ResetPasswordScreen} />
+                    <Stack.Screen name="VerifyEmail" component={VerifyEmailScreen} />
+                  </Stack.Navigator>
+                </NavigationContainer>
+              </ViewsProvider>
+            </FavoritesProvider>
+          </RegionProvider>
+        </AuthProvider>
+      </SafeAreaProvider>
+    </GestureHandlerRootView>
   );
 }

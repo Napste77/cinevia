@@ -2,14 +2,15 @@ import React, { useState } from "react";
 import {
   View,
   Text,
-  Image,
   Pressable,
   StyleSheet,
 } from "react-native";
+import { Image } from "expo-image";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { useNavigation } from "@react-navigation/native";
 import { TrendingItem } from "../types";
 import { useAuth } from "../context/AuthContext";
+import { tapHaptic } from "../utils/haptics";
 import { colors, radii, fonts } from "../theme";
 import RatingBadge from "./RatingBadge";
 
@@ -60,6 +61,7 @@ function MediaCard({
       navigation.navigate("Profile");
       return;
     }
+    tapHaptic();
     fn?.();
   };
 
@@ -81,6 +83,9 @@ function MediaCard({
           <Image
             source={{ uri }}
             style={[styles.poster, viewed && styles.posterViewed, hovered && styles.posterHover]}
+            contentFit="cover"
+            transition={200}
+            cachePolicy="memory-disk"
           />
         ) : (
           <View style={[styles.poster, styles.placeholder, viewed && styles.posterViewed]}>

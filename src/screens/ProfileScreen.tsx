@@ -1,5 +1,6 @@
 import React, { useCallback, useState } from "react";
-import { View, Text, Image, Pressable, StyleSheet, ScrollView } from "react-native";
+import { View, Text, Pressable, StyleSheet, ScrollView } from "react-native";
+import { Image } from "expo-image";
 import { useFocusEffect } from "@react-navigation/native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import AppShell from "../navigation/AppShell";
@@ -73,7 +74,13 @@ export default function ProfileScreen({ navigation }: any) {
           <View style={styles.card}>
             <View style={styles.avatar}>
               {user?.avatarUrl ? (
-                <Image source={{ uri: user.avatarUrl }} style={styles.avatarImage} />
+                <Image
+                  source={{ uri: user.avatarUrl }}
+                  style={styles.avatarImage}
+                  contentFit="cover"
+                  transition={150}
+                  cachePolicy="memory-disk"
+                />
               ) : isAuthenticated ? (
                 <Text style={styles.avatarInitial}>{initial}</Text>
               ) : (

@@ -2,7 +2,6 @@ import React, { useEffect, useState } from "react";
 import {
   View,
   Text,
-  Image,
   ScrollView,
   Pressable,
   FlatList,
@@ -11,12 +10,14 @@ import {
   Platform,
   useWindowDimensions,
 } from "react-native";
+import { Image } from "expo-image";
 import { WebView } from "react-native-webview";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
 import { LinearGradient } from "expo-linear-gradient";
 import { getDetail } from "../api/nowsee";
 import { openStreamingLink } from "../api/deepLinks";
 import { DetailData } from "../types";
+import { tapHaptic } from "../utils/haptics";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 import { useFavorites } from "../hooks/useFavorites";
@@ -54,6 +55,7 @@ export default function DetailScreen({ route, navigation }: any) {
       navigation.navigate("Profile");
       return;
     }
+    tapHaptic();
     fn();
   };
 
@@ -105,7 +107,14 @@ export default function DetailScreen({ route, navigation }: any) {
     <ScrollView style={styles.container} showsVerticalScrollIndicator={false}>
       <View style={[styles.backdropWrap, { height: isDesktop ? 460 : width * 0.65 }]}>
         {data.backdrop_path && (
-          <Image source={{ uri: data.backdrop_path }} style={StyleSheet.absoluteFillObject} />
+          <Image
+            source={{ uri: data.backdrop_path }}
+            style={StyleSheet.absoluteFillObject}
+            contentFit="cover"
+            transition={250}
+            cachePolicy="memory-disk"
+            priority="high"
+          />
         )}
         <LinearGradient
           colors={["transparent", colors.surface]}
@@ -119,7 +128,13 @@ export default function DetailScreen({ route, navigation }: any) {
       <View style={[styles.body, { paddingHorizontal: hPad }]}>
         <View style={[styles.headerRow, isDesktop && styles.headerRowDesktop]}>
           {isDesktop && data.poster_path && (
-            <Image source={{ uri: data.poster_path }} style={styles.poster} />
+            <Image
+              source={{ uri: data.poster_path }}
+              style={styles.poster}
+              contentFit="cover"
+              transition={200}
+              cachePolicy="memory-disk"
+            />
           )}
           <View style={{ flex: 1 }}>
             <Text style={styles.title}>{data.title}</Text>
@@ -202,7 +217,13 @@ export default function DetailScreen({ route, navigation }: any) {
               renderItem={({ item: c }) => (
                 <View style={styles.castItem}>
                   {c.profile_path ? (
-                    <Image source={{ uri: c.profile_path }} style={styles.castAvatar} />
+                    <Image
+                      source={{ uri: c.profile_path }}
+                      style={styles.castAvatar}
+                      contentFit="cover"
+                      transition={150}
+                      cachePolicy="memory-disk"
+                    />
                   ) : (
                     <View style={[styles.castAvatar, styles.castAvatarPlaceholder]}>
                       <MaterialIcons name="person" size={26} color={colors.onSurfaceVariant} />

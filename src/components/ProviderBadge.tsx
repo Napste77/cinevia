@@ -1,5 +1,6 @@
 import React, { useState } from "react";
-import { View, Text, Image, Pressable, StyleSheet, Platform } from "react-native";
+import { View, Text, Pressable, StyleSheet, Platform } from "react-native";
+import { Image } from "expo-image";
 import { ResolvedProvider } from "../types";
 import { isCapacitorNative } from "../api/deepLinks";
 import { colors, radii, fonts } from "../theme";

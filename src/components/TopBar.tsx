@@ -1,6 +1,7 @@
 import React from "react";
 import { View, Text, Pressable, StyleSheet } from "react-native";
 import MaterialIcons from "@expo/vector-icons/MaterialIcons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { colors, fonts, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 import BrandLogo from "./BrandLogo";
@@ -16,12 +17,19 @@ export default function TopBar({
   title?: string;
 }) {
   const { isDesktop } = useResponsive();
+  // En nativo la barra de estado es translúcida y el contenido dibuja por
+  // debajo: empujamos la barra con el inset superior (notch). En web = 0.
+  const insets = useSafeAreaInsets();
 
   return (
     <View
       style={[
         styles.wrap,
-        { paddingHorizontal: isDesktop ? spacing.marginDesktop : spacing.marginMobile },
+        {
+          paddingHorizontal: isDesktop ? spacing.marginDesktop : spacing.marginMobile,
+          height: 64 + insets.top,
+          paddingTop: insets.top,
+        },
       ]}
     >
       {isDesktop ? (

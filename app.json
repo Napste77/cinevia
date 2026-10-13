@@ -8,6 +8,9 @@
     "userInterfaceStyle": "dark",
     "backgroundColor": "#0c1324",
     "icon": "./assets/icon.png",
+    "runtimeVersion": {
+      "policy": "appVersion"
+    },
     "splash": {
       "image": "./assets/icon.png",
       "resizeMode": "contain",
@@ -19,6 +22,11 @@
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.nastex.nowsee"
+    },
+    "androidStatusBar": {
+      "barStyle": "light-content",
+      "translucent": true,
+      "backgroundColor": "#00000000"
     },
     "android": {
       "package": "com.nastex.nowsee",
@@ -37,7 +45,20 @@
       "description": "NowSee: descubrí películas y series en tendencia y dónde verlas en tus plataformas de streaming."
     },
     "plugins": [
-      "expo-font"
+      "expo-font",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 24,
+            "compileSdkVersion": 34,
+            "targetSdkVersion": 34
+          },
+          "ios": {
+            "deploymentTarget": "15.1"
+          }
+        }
+      ]
     ]
   }
 }
