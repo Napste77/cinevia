@@ -18,6 +18,7 @@ import { getDetail } from "../api/nowsee";
 import { openStreamingLink } from "../api/deepLinks";
 import { DetailData } from "../types";
 import { tapHaptic } from "../utils/haptics";
+import { shareTitle } from "../utils/share";
 import { colors, fonts, radii, spacing } from "../theme";
 import { useResponsive } from "../hooks/useResponsive";
 import { useFavorites } from "../hooks/useFavorites";
@@ -123,6 +124,16 @@ export default function DetailScreen({ route, navigation }: any) {
         <Pressable style={styles.backFloating} onPress={() => navigation.goBack()}>
           <MaterialIcons name="arrow-back" size={22} color={colors.onSurface} />
         </Pressable>
+        <Pressable
+          style={styles.shareFloating}
+          onPress={() => {
+            tapHaptic();
+            shareTitle(data);
+          }}
+          hitSlop={8}
+        >
+          <MaterialIcons name="share" size={20} color={colors.onSurface} />
+        </Pressable>
       </View>
 
       <View style={[styles.body, { paddingHorizontal: hPad }]}>
@@ -198,6 +209,17 @@ export default function DetailScreen({ route, navigation }: any) {
                 <Text style={styles.favButtonText}>
                   {viewed ? "Ya lo viste" : "Marcar como visto"}
                 </Text>
+              </Pressable>
+
+              <Pressable
+                style={styles.favButton}
+                onPress={() => {
+                  tapHaptic();
+                  shareTitle(data);
+                }}
+              >
+                <MaterialIcons name="share" size={18} color={colors.onSurface} />
+                <Text style={styles.favButtonText}>Compartir</Text>
               </Pressable>
             </View>
           </View>
@@ -336,6 +358,17 @@ const styles = StyleSheet.create({
     position: "absolute",
     top: 20,
     left: 20,
+    width: 40,
+    height: 40,
+    borderRadius: 20,
+    backgroundColor: "rgba(12,19,36,0.7)",
+    justifyContent: "center",
+    alignItems: "center",
+  },
+  shareFloating: {
+    position: "absolute",
+    top: 20,
+    right: 20,
     width: 40,
     height: 40,
     borderRadius: 20,
